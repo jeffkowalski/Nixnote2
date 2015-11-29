@@ -97,7 +97,7 @@ void NMainMenuBar::setupFileMenu() {
 
     fileMenu->addSeparator();
 
-    exportNoteAction = new QAction(tr("&Export Notes"), this);
+    exportNoteAction = new QAction(tr("&Export Notes..."), this);
     exportNoteAction->setToolTip(tr("Export selected notes to a file"));
     connect(exportNoteAction, SIGNAL(triggered()), parent, SLOT(noteExport()));
     setupShortcut(exportNoteAction, QString("File_Note_Export"));

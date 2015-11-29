@@ -68,6 +68,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "dialog/databasestatus.h"
 #include "dialog/adduseraccountdialog.h"
 #include "dialog/accountmaintenancedialog.h"
+#include "dialog/exportnotesdialog.h"
 #include "communication/communicationmanager.h"
 #include "utilities/encrypt.h"
 #include <boost/shared_ptr.hpp>
@@ -1568,7 +1569,8 @@ void NixNote::leftButtonTriggered() {
 // Import notes menu option chosen
 //**************************************************
 void NixNote::noteExport() {
-    databaseBackup(false);
+    ExportNotesDialog dialog(menuBar, this);
+    dialog.exec();
 }
 
 

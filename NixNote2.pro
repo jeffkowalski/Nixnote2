@@ -155,6 +155,7 @@ SOURCES += main.cpp\
     settings/accountsmanager.cpp \
     dialog/adduseraccountdialog.cpp \
     dialog/accountmaintenancedialog.cpp \
+    dialog/exportnotesdialog.cpp \
     gui/truefalsedelegate.cpp \
     gui/browserWidgets/editorbuttonbar.cpp \
     communication/communicationerror.cpp \
@@ -332,6 +333,7 @@ HEADERS  += nixnote.h \
     settings/accountsmanager.h \
     dialog/adduseraccountdialog.h \
     dialog/accountmaintenancedialog.h \
+    dialog/exportnotesdialog.h \
     gui/truefalsedelegate.h \
     gui/browserWidgets/editorbuttonbar.h \
     communication/communicationerror.h \
