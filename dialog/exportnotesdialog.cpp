@@ -135,6 +135,6 @@ void ExportNotesDialog::exportNotes() {
     if (nnexActionRadioButton->isChecked())
         dynamic_cast<NixNote *>(parent)->databaseBackup(false);
     else
-        QLOG_DEBUG() << "exporting html notes";
+        dynamic_cast<NixNote *>(parent)->exportHTML();
     close();
 }

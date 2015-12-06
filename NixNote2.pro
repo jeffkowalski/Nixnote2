@@ -182,6 +182,7 @@ SOURCES += main.cpp\
     dialog/aboutdialog.cpp \
     xml/importenex.cpp \
     xml/exportdata.cpp \
+    xml/exporthtml.cpp \
     dialog/logviewer.cpp \
     dialog/htmlentitiesdialog.cpp \
     qevercloud/exceptions.cpp \
@@ -360,6 +361,7 @@ HEADERS  += nixnote.h \
     dialog/aboutdialog.h \
     xml/importenex.h \
     xml/exportdata.h \
+    xml/exporthtml.h \
     dialog/logviewer.h \
     dialog/htmlentitiesdialog.h \
     qevercloud/exceptions.h \

@@ -80,6 +80,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "xml/importdata.h"
 #include "xml/importenex.h"
 #include "xml/exportdata.h"
+#include "xml/exporthtml.h"
 #include "dialog/aboutdialog.h"
 
 #include "qevercloud/include/QEverCloudOAuth.h"
@@ -1566,11 +1567,68 @@ void NixNote::leftButtonTriggered() {
 
 
 //**************************************************
-// Import notes menu option chosen
+// Export notes menu option chosen
 //**************************************************
 void NixNote::noteExport() {
     ExportNotesDialog dialog(menuBar, this);
     dialog.exec();
+}
+
+
+
+//**************************************************
+//* Export notes to html
+//**************************************************
+void NixNote::exportHTML(void) {
+    QLOG_TRACE() << "Entering exportHTML()";
+    ExportHTML noteExporter(this);
+
+    noteTableView->getSelectedLids(noteExporter.lids);
+    if (noteExporter.lids.size() == 0) {
+        QMessageBox::critical(this, tr("Error"), tr("No notes selected."));
+        return;
+    }
+
+    QString caption, directory;
+    caption = tr("Export Notes");
+    if (saveLastPath == "")
+        directory = QDir::homePath();
+    else
+        directory = saveLastPath;
+
+    QFileDialog fd(0, caption, directory, tr("All Files (*.*)"));
+    fd.setFileMode(QFileDialog::Directory);
+    fd.setOption(QFileDialog::ShowDirsOnly);
+    fd.setAcceptMode(QFileDialog::AcceptSave);
+
+    if (fd.exec() == 0 || fd.selectedFiles().size() == 0) {
+        QLOG_DEBUG() << "export HTML canceled in file dialog.";
+        return;
+    }
+
+    waitCursor(true);
+    QStringList fileNames;
+    fileNames = fd.selectedFiles();
+    saveLastPath = fileNames[0];
+    int pos = saveLastPath.lastIndexOf("/");
+    if (pos != -1)
+        saveLastPath.truncate(pos);
+
+    setMessage(tr("Performing export"));
+
+    noteExporter.backupHTML(fileNames[0]);
+
+    if (noteExporter.lastError != 0) {
+        setMessage(noteExporter.errorMessage);
+        QLOG_ERROR() <<  "Backup problem: " << noteExporter.errorMessage;
+        QMessageBox::critical(this, tr("Error"), noteExporter.errorMessage);
+        waitCursor(false);
+        return;
+    }
+
+    setMessage(tr("Note extract complete."));
+
+    waitCursor(false);
 }
 
 
@@ -1643,7 +1701,6 @@ void NixNote::databaseBackup(bool backup) {
         setMessage(tr("Note extract complete."));
 
     waitCursor(false);
-
 }
 
 

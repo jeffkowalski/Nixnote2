@@ -207,6 +207,7 @@ public slots:
     void openNote(bool newWindow);
     void noteImport();
     void noteExport();
+    void exportHTML(void);
     void databaseRestore(bool fullRestore=true);
     void databaseBackup(bool backup=true);
     void resetView();
