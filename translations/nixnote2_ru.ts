@@ -291,7 +291,7 @@
     </message>
     <message>
         <location filename="../dialog/preferences/appearancepreferences.cpp" line="60"/>
-        <source>Preview fonts in editor dialag*</source>
+        <source>Preview fonts in editor dialog*</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -875,7 +875,7 @@
     </message>
     <message>
         <location filename="../dialog/preferences/debugpreferences.cpp" line="67"/>
-        <source>Use multipe theads to save note contents (experimental).</source>
+        <source>Use multiple threads to save note contents (experimental).</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -4912,7 +4912,7 @@ any key or using the right or middle mouse buttons.</source>
     </message>
     <message>
         <location filename="../threads/syncrunner.cpp" line="193"/>
-        <source>Sync Complete Successfully</source>
+        <source>Sync completed successfully</source>
         <translation type="unfinished"></translation>
     </message>
     <message>

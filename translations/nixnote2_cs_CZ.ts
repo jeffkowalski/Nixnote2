@@ -304,7 +304,7 @@ posílejte prosím na &lt;i&gt;Milos.Kozina@email.cz&lt;/i&gt;.&lt;/p&gt;&lt;/sp
     </message>
     <message>
         <location filename="../dialog/preferences/appearancepreferences.cpp" line="60"/>
-        <source>Preview fonts in editor dialag*</source>
+        <source>Preview fonts in editor dialog*</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -917,7 +917,7 @@ posílejte prosím na &lt;i&gt;Milos.Kozina@email.cz&lt;/i&gt;.&lt;/p&gt;&lt;/sp
     </message>
     <message>
         <location filename="../dialog/preferences/debugpreferences.cpp" line="67"/>
-        <source>Use multipe theads to save note contents (experimental).</source>
+        <source>Use multiple threads to save note contents (experimental).</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -5022,7 +5022,7 @@ nebo ukončete snímkování libovolnou klávesou či prostředním tlačítekm 
     </message>
     <message>
         <location filename="../threads/syncrunner.cpp" line="193"/>
-        <source>Sync Complete Successfully</source>
+        <source>Sync completed successfully</source>
         <translation>Synchronizace úspěšně dokončena</translation>
     </message>
     <message>
