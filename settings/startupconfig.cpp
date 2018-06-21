@@ -76,7 +76,7 @@ void StartupConfig::printHelp() {
                    // see FileManager.getConfigDir() for more info
                    +QString("          --configDir=<dir>            Directory containing config files.\n")
                    +QString("          --userDataDir=<dir>          Directory containing database, logs etc..\n")
-                   +QString("                                       Warning: ff you set configDir, but don't set userDataDir; userDataDir defaults\n")
+                   +QString("                                       Warning: if you set configDir, but don't set userDataDir; userDataDir defaults\n")
                    +QString("                                       to configDir.\n")
                    +QString("          --programDataDir=<dir>       Directory containing deployed fixed program data (like images).\n")
 
@@ -732,5 +732,3 @@ void StartupConfig::setAccountId(int accountId) {
     QLOG_DEBUG() << "StartupConfig: updating accountId to" << accountId;
     this->accountId = accountId;
 }
-
-
