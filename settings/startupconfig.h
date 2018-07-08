@@ -66,16 +66,11 @@ private:
     QString configDir;
     QString programDataDir;
     QString userDataDir;
-    // command line set log level
-    // this is used to check: if log leven was set on command line, then it overrides the conf file value
-    int logLevel;
 
     int accountId;
 
 public:
     StartupConfig();
-
-    QString name;
 
     QString getConfigDir() { return configDir; }
     QString getProgramDataDir() { return programDataDir; }
@@ -83,10 +78,6 @@ public:
 
 
     int getAccountId() { return accountId; }
-    int getLogLevel() { return logLevel; }
-
-    // TODO refactor its not very clean to set the account id here from "global"
-    void setAccountId(int accountId);
 
     QString queryString;
     bool forceNoStartMinimized;

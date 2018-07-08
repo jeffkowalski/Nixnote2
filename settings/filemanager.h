@@ -27,6 +27,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <QDir>
 #include <exception>
 #include <QStandardPaths>
+#include "logger/qslog.h"
+#include "logger/qslogdest.h"
 
 //************************************************
 //* This class is used to retrieve the
@@ -54,12 +56,6 @@ private:
     QDir javaDir;
 
     QString spellDirPathUser;
-    QDir spellDirUser;
-
-    //    QString qssDirPath;
-    //    QDir qssDir;
-    //    QString qssDirPathUser;
-    //    QDir qssDirUser;
 
     QString tmpDirPath;
     QDir tmpDir;
@@ -76,19 +72,21 @@ private:
     QString translateDirPath;
     QDir translateDir;
 
+    QsLogging::DestinationPtr fileLoggingDestination;
+
     QString toPlatformPathSeparator(QString relativePath);
     QString slashTerminatePath(QString path);
-    void deleteTopLevelFiles(QDir dir, bool exitOnFail);
-    void createDirOrCheckWriteable(QDir dir);
     void checkExistingReadableDir(QDir dir);
     void checkExistingWriteableDir(QDir dir);
+    void createDirOrCheckWriteable(QDir dir);
 
 public:
     FileManager();
-    void setup(QString startupConfigDir, QString startupUserDataDir, QString startupProgramDataDir, int accountId);
+    void setup(QString startupConfigDir, QString startupUserDataDir, QString startupProgramDataDir);
+    void setupUserDirectories( int accountId);
 
     // new global file path interface ------- -----------------------------------------------------------
-    // where "nixnote.conf" is stored (but NOT database, logs etc.)
+    // where main config file is stored (but NOT database, logs etc.)
     QString getConfigDir() { return configDir; };
 
     // where additional resources are stored e.g. "help/*", "images/*" etc.
@@ -98,9 +96,6 @@ public:
     QString getUserDataDir() { return userDataDir; };
     // new global file path interface ------- -----------------------------------------------------------
 
-
-    QString getSpellDirPath();
-    QDir getSpellDirFileUser(QString relativePath);
     QString getSpellDirPathUser();
     QString getDbDirPath(QString relativePath);
     QString getDbaDirPath();
@@ -124,7 +119,10 @@ public:
     QString getTmpDirPath(QString relativePath);
     QString getTmpDirPathSpecialChar(QString relativePath);
     QString getTranslateFilePath(QString relativePath);
-    void purgeResDirectory(bool exitOnFail);
+    QString readFile(QString file);
+    QString getProgramVersion();
+    void setupFileAttachmentLogging();
+    void deleteTopLevelFiles(QDir dir, bool exitOnFail);
 };
 
 #endif // FILEMANAGER_H

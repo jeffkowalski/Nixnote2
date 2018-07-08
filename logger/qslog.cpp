@@ -29,130 +29,170 @@
 #include <QList>
 #include <QDateTime>
 #include <QtGlobal>
+#include <QFile>
+#include <QDir>
+
+
 #include <cassert>
 #include <cstdlib>
 #include <stdexcept>
 
-namespace QsLogging
-{
-typedef QList<Destination*> DestinationList;
+namespace QsLogging {
+    typedef QList<Destination *> DestinationList;
 
-static const char TraceString[] = "TRACE";
-static const char DebugString[] = "DEBUG";
-static const char InfoString[]  = "INFO";
-static const char WarnString[]  = "WARN";
-static const char ErrorString[] = "ERROR";
-static const char FatalString[] = "FATAL";
+    static const char TraceString[] = "TRACE";
+    static const char DebugString[] = "DEBUG";
+    static const char InfoString[] = "INFO";
+    static const char WarnString[] = "WARN";
+    static const char ErrorString[] = "ERROR";
+    static const char FatalString[] = "FATAL";
 
-// not using Qt::ISODate because we need the milliseconds too
-static const QString fmtDateTime("yyyy-MM-dd hh:mm:ss.zzz");
+    // not using Qt::ISODate because we need the milliseconds too
+    static const QString fmtDateTime("yyyy-MM-dd hh:mm:ss.zzz");
 
-static const char* LevelToText(Level theLevel)
-{
-   switch( theLevel )
-   {
-   case TraceLevel:
-      return TraceString;
-   case DebugLevel:
-      return DebugString;
-   case InfoLevel:
-      return InfoString;
-   case WarnLevel:
-      return WarnString;
-   case ErrorLevel:
-      return ErrorString;
-   case FatalLevel:
-      return FatalString;
-   default:
-      {
-         assert(!"bad log level");
-         return InfoString;
-      }
-   }
-}
+    static const char *LevelToText(Level theLevel) {
+        switch (theLevel) {
+            case TraceLevel:
+                return TraceString;
+            case DebugLevel:
+                return DebugString;
+            case InfoLevel:
+                return InfoString;
+            case WarnLevel:
+                return WarnString;
+            case ErrorLevel:
+                return ErrorString;
+            case FatalLevel:
+                return FatalString;
+            default: {
+                assert(!"bad log level");
+                return InfoString;
+            }
+        }
+    }
 
-class LoggerImpl
-{
-public:
-   LoggerImpl() :
-      level(InfoLevel)
-   {
+    class LoggerImpl {
+    public:
+        LoggerImpl() :
+            level(InfoLevel) {
 
-   }
-   QMutex logMutex;
-   Level level;
-   DestinationList destList;
-};
+        }
 
-Logger::Logger() :
-   d(new LoggerImpl)
-{
-}
+        QMutex logMutex;
+        Level level;
+        DestinationList destList;
+    };
 
-Logger::~Logger()
-{
-   delete d;
-}
+    Logger::Logger() :
+        d(new LoggerImpl) {
+        this->filenameCounter = 0;
+        this->displayTimestamp = true;
+    }
 
-void Logger::addDestination(Destination* destination)
-{
-   assert(destination);
-   d->destList.push_back(destination);
-}
+    Logger::~Logger() {
+        delete d;
+    }
 
-void Logger::setLoggingLevel(Level newLevel)
-{
-   d->level = newLevel;
-}
+    void Logger::addDestination(Destination *destination) {
+        assert(destination);
+        d->destList.push_back(destination);
+    }
 
-Level Logger::loggingLevel() const
-{
-   return d->level;
-}
+    void Logger::setLoggingLevel(Level newLevel) {
+        d->level = newLevel;
+    }
 
-//! creates the complete log message and passes it to the logger
-void Logger::Helper::writeToLog()
-{
-   const char* const levelName = LevelToText(level);
-   const QString completeMessage(QString("%1 %2 %3")
-      .arg(levelName, 5)
-      .arg(QDateTime::currentDateTime().toString(fmtDateTime))
-      .arg(buffer)
-      );
+    Level Logger::loggingLevel() const {
+        return d->level;
+    }
 
-   Logger& logger = Logger::instance();
-   QMutexLocker lock(&logger.d->logMutex);
-   logger.write(completeMessage);
-}
+    // creates the complete log message and passes it to the logger
+    void Logger::Helper::writeToLog() {
+        const char *const levelName = LevelToText(level);
+        Logger &logger = Logger::instance();
+        QString completeMessage(QString(levelName).leftJustified(5).append(" "));
+        if (logger.isDisplayTimestamp()) {
+            completeMessage.append(QDateTime::currentDateTime().toString(fmtDateTime)).append(" ");
+        }
+        completeMessage.append(buffer);
 
-Logger::Helper::~Helper()
-{
-   try
-   {
-      writeToLog();
-   }
-   catch(std::exception& e)
-   {
-      // you shouldn't throw exceptions from a sink
-      Q_UNUSED(e);
-      assert(!"exception in logger helper destructor");
-      //throw;
-   }
-}
+        QMutexLocker lock(&logger.d->logMutex);
+        logger.write(completeMessage);
+    }
 
-//! sends the message to all the destinations
-void Logger::write(const QString& message)
-{
-   for(DestinationList::iterator it = d->destList.begin(),
-       endIt = d->destList.end();it != endIt;++it)
-   {
-      if( !(*it) )
-      {
-         assert(!"null log destination");
-         continue;
-      }
-      (*it)->write(message);
-   }
-}
+    Logger::Helper::~Helper() {
+        try {
+            writeToLog();
+        }
+        catch (std::exception &e) {
+            // you shouldn't throw exceptions from a sink
+            Q_UNUSED(e);
+            assert(!"exception in logger helper destructor");
+            //throw;
+        }
+    }
+
+    // sends the message to all the destinations
+    void Logger::write(const QString &message) {
+        for (DestinationList::iterator it = d->destList.begin(),
+                 endIt = d->destList.end(); it != endIt; ++it) {
+            if (!(*it)) {
+                assert(!"null log destination");
+                continue;
+            }
+            (*it)->write(message);
+        }
+    }
+
+#define QLOGINFO QsLogging::Logger::Helper(QsLogging::InfoLevel).stream
+
+    /**
+     * Write a string to log file - one file per call (to be used for logging of long strings e.g. note html)
+     *
+     * @param logid - some short string for easy identification
+     *                we will construct filename with seq.number and use this as part of filename
+     * @param message - obviously the content to write
+     */
+    void Logger::writeToFile(const QString &logid, const QString &message) {
+
+        if (fileLoggingPath.isEmpty()) {
+            QLOGINFO() << "fileLoggingPath not set writeToFile not disabled";
+        }
+
+        if (!fileLoggingPath.endsWith(QDir::separator())) {
+            fileLoggingPath.append(QDir::separator());
+        }
+
+        // not multi-thread safe, but should not be needed
+        filenameCounter++;
+        // format with 4 leading zeros; 10 is radix
+        QString filename = QString("%1").arg(filenameCounter, 4, 10, QChar('0'));
+        if (!logid.isEmpty()) {
+            filename.append("-").append(logid);
+        }
+        if (!filename.contains(".")) {
+            filename.append(".log");
+        }
+
+        QFile file(fileLoggingPath + filename);
+
+        if (file.open(QFile::WriteOnly | QFile::Truncate)) {
+            QTextStream stream(&file);
+            stream << message;
+        }
+        QLOGINFO() << "Writing attachment data to " << filename;
+    }
+
+    /**
+     * Can be used to turn of timestamp display.
+     * May be useful while debugging (e.g. in IDE).
+     */
+    void Logger::setDisplayTimestamp(bool displayTimestamp) {
+        Logger::displayTimestamp = displayTimestamp;
+    }
+
+    bool Logger::isDisplayTimestamp() const {
+        return displayTimestamp;
+    }
 
 } // end namespace

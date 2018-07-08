@@ -33,16 +33,21 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 // Windows Check
 #ifndef _WIN32
+
 #include <execinfo.h>
+
 #endif
 
-#include <signal.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include <csignal>
+#include <cstdio>
+#include <cstdlib>
 #include <QNetworkProxy>
 
 
 #include "application.h"
+
+#include <tidy.h>
+#include <tidybuffio.h>
 
 
 NixNote *w;
@@ -61,57 +66,55 @@ extern Global global;
 #ifndef _WIN32
 
 void fault_handler(int sig) {
-  void *array[30];
-  size_t size;
+    void *array[30];
+    size_t size;
 
-  // get void*'s for all entries on the stack
-  size = backtrace(array, 30);
+    // get void*'s for all entries on the stack
+    size = backtrace(array, 30);
 
-  // print out all the frames to stderr
-  fprintf(stderr, "Error: signal %d:\n", sig);
-  backtrace_symbols_fd(array, size, 2);  
-  if (w!=NULL) {
-      fprintf(stderr, "Forcing save\n");
-      w->saveState();
-  }
-  exit(1);
+    // print out all the frames to stderr
+    fprintf(stderr, "Error: signal %d:\n", sig);
+    backtrace_symbols_fd(array, size, 2);
+    if (w != NULL) {
+        fprintf(stderr, "Forcing save\n");
+        w->saveState();
+    }
+    exit(1);
 }
 
 
-
 void sighup_handler(int sig) {
-  // print out all the frames to stderr
-  fprintf(stderr, "Error: signal %d:\n", sig);
-  if (w!=NULL) {
-      fprintf(stderr, "Forcing save\n");
-      w->saveState();
-  }
+    // print out all the frames to stderr
+    fprintf(stderr, "Error: signal %d:\n", sig);
+    if (w != NULL) {
+        fprintf(stderr, "Forcing save\n");
+        w->saveState();
+    }
 }
 
 
 #endif // End Windows check
 
 
-
-
 //using namespace cv;
 //*********************************************************************
 //* Main entry point to the program.
 //*********************************************************************
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
     w = NULL;
     bool guiAvailable = true;
 
     // Setup the QLOG functions for debugging & messages
     // we need to do it at very beginning, else we lose the startup messages
-    QsLogging::Logger& logger = QsLogging::Logger::instance();
+    QsLogging::Logger &logger = QsLogging::Logger::instance();
     // at very beginning we starting with info level to get basic startup info
     // log level is later adjusted by settings
-    logger.setLoggingLevel(QsLogging::InfoLevel);
+
+    // FOR ALFA VERSION TEMPORARY DEFAULT LOG LEVEL IS DEBUG
+    logger.setLoggingLevel(QsLogging::DebugLevel);
 
     QsLogging::DestinationPtr debugDestination(
-        QsLogging::DestinationFactory::MakeDebugOutputDestination() );
+        QsLogging::DestinationFactory::MakeDebugOutputDestination());
     logger.addDestination(debugDestination.get());
 
 // Windows Check
@@ -124,34 +127,45 @@ int main(int argc, char *argv[])
     global.argc = argc;
     global.argv = argv;
 
-    int retval = startupConfig.init(argc,argv, guiAvailable);
-    if (retval != 0)
+    int retval = startupConfig.init(argc, argv, guiAvailable);
+    if (retval != 0) {
         return retval;
+    }
 
-    // Show Qt version.  This is useful for debugging
-    // initial log level is INFO - so this will be SHOWN per default
-    QLOG_INFO() << "Nixnote2 - build (" << __DATE__ << " at " << __TIME__
-                << ", with Qt" << QT_VERSION_STR << "running on" << qVersion() << ")";
-    QLOG_INFO() << "To get more detailed startup logging use --logLevel=1";
+
 
     // Setup the application. If we have a GUI, then we use Application.
     // If we don't, then we just use a derivative of QCoreApplication
-    QCoreApplication *a = NULL;
+    QCoreApplication *a = nullptr;
     if (guiAvailable) {
-        Application *app = new Application(argc, argv);
+        auto *app = new Application(argc, argv);
         a = app;
     } else {
         a = new QCoreApplication(argc, argv);
     }
+    QCoreApplication::setApplicationName(NN_APP_NAME);
     global.application = a;
 
-    startupConfig.name = "NixNote";
+
+    global.fileManager.setup(startupConfig.getConfigDir(), startupConfig.getUserDataDir(),
+                             startupConfig.getProgramDataDir());
+    QString versionStr = global.fileManager.getProgramVersion();
+
+    // first configure global settings file
+    global.initializeGlobalSettings();
+    // then we configure user config file - accountId may be set on command line (then it comes via startupConfig)
+    // but if it is not, then we get it from main config (and set to global.accountId)
+    global.initializeUserSettings(startupConfig.getAccountId());
+    // now we can set up user data directories
+    global.fileManager.setupUserDirectories(global.getAccountId());
+    // and not instance sync memory mapper
+    global.initializeSharedMemoryMapper(global.getAccountId());
+    // now all other..
     global.setup(startupConfig, guiAvailable);
-    //    global.syncAndExit=startupConfig.syncAndExit;
 
     // We were passed a SQL command
     if (startupConfig.sqlExec) {
-        DatabaseConnection *db = new DatabaseConnection("nixnote");  // Startup the database
+        DatabaseConnection *db = new DatabaseConnection(NN_DB_CONNECTION_NAME);  // Startup the database
         QLOG_DEBUG() << "Starting DB";
         QSqlQuery query(db->conn);
         QLOG_DEBUG() << "After DB Start";
@@ -162,7 +176,7 @@ int main(int argc, char *argv[])
         }
         while (query.next()) {
             QString result = "";
-            for (int i=0; i<query.record().count(); i++) {
+            for (int i = 0; i < query.record().count(); i++) {
                 result = result + query.value(i).toString() + " | ";
             }
             QLOG_INFO() << result;
@@ -175,63 +189,67 @@ int main(int argc, char *argv[])
 
     // If we want something other than the GUI, try let the CmdLineTool deal with it.
     if (!startupConfig.gui()) {
-        global.purgeTemporaryFilesOnShutdown=startupConfig.purgeTemporaryFiles;
+        global.purgeTemporaryFilesOnShutdown = startupConfig.purgeTemporaryFiles;
         CmdLineTool cmdline;
-        startupConfig.purgeTemporaryFiles=false;
-        int retval = cmdline.run(startupConfig);
+        startupConfig.purgeTemporaryFiles = false;
+        int retval1 = cmdline.run(startupConfig);
         if (global.sharedMemory->isAttached())
             global.sharedMemory->detach();
-        QLOG_INFO() << "Exit: retcode=" << retval;
-        if (a!=NULL)
-            delete a;
-        exit(retval);
+        QLOG_INFO() << "Exit: retcode=" << retval1;
+        delete a;
+
+        exit(retval1);
     }
 
-    QString logPath = global.fileManager.getLogsDirPath("")+"messages.log";
+    QString logPath = global.fileManager.getLogsDirPath("") + "messages.log";
     QsLogging::DestinationPtr fileDestination(
-                 QsLogging::DestinationFactory::MakeFileDestination(logPath) ) ;
+        QsLogging::DestinationFactory::MakeFileDestination(logPath));
     logger.addDestination(fileDestination.get());
 
+    // from now on logging goes also to log file (up to here only to terminal)
+
+    QLOG_INFO().noquote() << NN_APP_DISPLAY_NAME " " << versionStr << "- build at " << __DATE__ << " at " << __TIME__
+                          << ", with Qt" << QT_VERSION_STR << " running on " << qVersion();
+    if (logger.loggingLevel() > 1) {
+        QLOG_INFO() << "To get more detailed startup logging use --logLevel=1";
+    }
 
     // Create a shared memory region.  We use this to communicate
     // with any other instance that may be running.  If another instance
     // is found we need to either show that one or kill this one.
     bool memInitNeeded = true;
-    if( !global.sharedMemory->allocate(512*1024) ) {
+    if (!global.sharedMemory->allocate(512 * 1024)) {
         // Attach to it and detach.  This is done in case it crashed.
         global.sharedMemory->attach();
         global.sharedMemory->detach();
-        if( !global.sharedMemory->allocate(512*1024) ) {
+        if (!global.sharedMemory->allocate(512 * 1024)) {
             QLOG_DEBUG() << "segment created";
             if (startupConfig.startupNewNote) {
                 global.sharedMemory->attach();
                 global.sharedMemory->write(QString("NEW_NOTE"));
                 global.sharedMemory->detach();
-                if (a!=NULL)
-                    delete a;
+                delete a;
                 exit(0);  // Exit this one
             }
             if (startupConfig.startupNoteLid > 0) {
                 global.sharedMemory->attach();
-                global.sharedMemory->write("OPEN_NOTE"+QString::number(startupConfig.startupNoteLid) + " ");
+                global.sharedMemory->write("OPEN_NOTE" + QString::number(startupConfig.startupNoteLid) + " ");
                 global.sharedMemory->detach();
-                if (a!=NULL)
-                    delete a;
+                delete a;
                 exit(0);  // Exit this one
             }
 
             // If we've gotten this far, we need to either stop this instance or stop the other
             QLOG_DEBUG() << "Multiple instance found";
-            global.settings->beginGroup("Debugging");
+            global.settings->beginGroup(INI_GROUP_DEBUGGING);
             QString startup = global.settings->value("onMultipleInstances", "SHOW_OTHER").toString();
             global.settings->endGroup();
             global.sharedMemory->attach();
             if (startup == "SHOW_OTHER") {
                 global.sharedMemory->write(QString("SHOW_WINDOW"));
                 global.sharedMemory->detach();
-                if (a!=NULL)
-                    delete a;
-                 return 0;  // Exit this one
+                delete a;
+                return 0;  // Exit this one
             }
             if (startup == "STOP_OTHER") {
                 global.sharedMemory->write(QString("IMMEDIATE_SHUTDOWN"));
@@ -244,17 +262,19 @@ int main(int argc, char *argv[])
         global.sharedMemory->clearMemory();
     }
 
+    global.fileManager.setupFileAttachmentLogging();
+
 #ifndef _WIN32
     if (global.getInterceptSigHup())
         signal(SIGHUP, sighup_handler);   // install our handler
 #endif
 
-    QLOG_DEBUG() << "Setting up NN";
+    QLOG_DEBUG() << "Setting up";
     w = new NixNote();
     w->setAttribute(Qt::WA_QuitOnClose);
 
     // this is bit dirty, maybe improve later
-    QObject::connect(&global, SIGNAL(setMessageSignal(QString, int)), w, SLOT(setMessage(QString,int)));
+    QObject::connect(&global, SIGNAL(setMessageSignal(QString, int)), w, SLOT(setMessage(QString, int)));
 
     bool show = true;
     if (global.minimizeToTray() && global.startMinimized)

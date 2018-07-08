@@ -1,5 +1,21 @@
 # CHANGELOG
 
+## 2018-07
+### #8
+* **Redesigned html cleanup**. Now newest html tidy libray is used (currently v.5.6). Before system level
+  tidy executable was used, which could be like 9 years old.
+  Pasting ~any html content into note should work now. Although sometimes images are not recognised.
+  Images need to be attached manually (e.g. by drag & drop.) 
+* Improved exception handling and logging. Removed log level setting in gui. Log level may now be set
+  from command line using e.g. --logLevel=1 for debug level. 
+* Changed some setting defaults - e.g. which columns are initially shown (default "title" only).
+  Settings can be changed in preferences and are preserved on next run (same as before).     
+
+### #7
+* [AppImage packaging](https://appimage.org/) using [linuxdeployqt](https://github.com/probonopd/linuxdeployqt).
+  This should allow easy deployment "anywhere" no worry about missing dependencies
+  and later use newest libraries.
+
 ## 2018-06
 ### #6
 * Focus on search box after "all notes"
@@ -12,9 +28,6 @@
   re-added back later (commit id 6149a745d014f55352b2e6cad8ff4637414861b7).
 * Improved logging in case there is problem with resources (and note is set to read only in nixnote).
   
-     
-  
-
 ### #5
 * Minor improvement in font color/background color (highlight selection). 
   Tooltip now shows how to use. Keyboard shortcuts possible (default Ctrl-d, Ctrl-Shift-H). Context
