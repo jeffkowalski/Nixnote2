@@ -1,9 +1,45 @@
 # CHANGELOG
+* [Binary releases](https://github.com/robert7/nixnote2/releases)
+
+## 2018-08
+### v2.1.0-beta-1
+* Various minor improvements and stabilisation
+* Fixed bug with media attachments
+* Improved HTML Simplify
+* Removed both webcam and screenshoot functionality (there are better tools for bot actions)
+* Show/Hide is now simplified to "Show" as previously it could lead to inconsistent behaviour
+* Sys Tray menu functionality cleanup
+* New feature search and index without [diacritics](https://en.wikipedia.org/wiki/Diacritic). This is highly
+  useful for some eastern european languages. As this requires reindexing whole database, activation currently 
+  needs to be done manually (I'll write later some Howto)
+* Remove "auto hide toolbar option", as it was not working correctly
+* PDF export improvements
+  * fixed: PDF export file picker stays in background after first PDF export.. then stays hidden=>confusing
+  * OK dialog is useless
+  * fixed: Filedialog should add pdf extension
+* Insert Date/Time now respect locale settings; added shortcut for Insert Date and Insert Time
+  few more european date formats added
+* Adjusted middle mouse click behaviour (middle click now opens in new window)    
 
 ## 2018-07
+
+### #10
+* Simplified content of the Help menu. Removed unrelevant items. "Message Log Info" now shows
+  log file location & instructions.
+* Further stabilisation of html cleanup.
+* Duplicate note will now mark note as "- copy".
+* Added "Simplify html" to clean html garbage e.g. after paste from some web page. 
+  So far only very experimental version. Discards images. Will be improved later.
+
+### #9
+* Added **docker build**. Creating binaries ouf of source is now very straightforward.
+* Improved reporting and logging of errors (mainly for sync errors). The messages may be now
+  more technical (can be improved later), but should at least display always and more 
+  details are in log.
+
 ### #8
-* **Redesigned html cleanup**. Now newest html tidy libray is used (currently v.5.6). Before system level
-  tidy executable was used, which could be like 9 years old.
+* **Redesigned html cleanup** to prevent sync errors. Now newest html tidy libray is used (currently v.5.6). 
+  Before system level tidy executable was used, which could be like 9 years old.
   Pasting ~any html content into note should work now. Although sometimes images are not recognised.
   Images need to be attached manually (e.g. by drag & drop.) 
 * Improved exception handling and logging. Removed log level setting in gui. Log level may now be set
@@ -78,8 +114,7 @@
 * [Preview](https://www.dropbox.com/sh/62lnikzyf4r0sa2/AADMk-EHBwvBt7G5bOga9tyia?dl=0&preview=RS-3-search-sort-relevance.png)
 
 ### #2
-* Some note editing and toolbar tweeks (color picker has now restricted list of color; but does'nt really 
-  work correctly yet)
+* Some note editing and toolbar tweeks (color picker has now restricted list of colors).
 
 ### #1
 * Merged master to development

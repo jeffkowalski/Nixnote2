@@ -802,27 +802,27 @@ some window managers)</source>
     </message>
     <message>
         <location filename="../dialog/databasestatus.cpp" line="47"/>
-        <source>Total Notes:</source>
+        <source>Total notes:</source>
         <translation>Gesamte Notizen:</translation>
     </message>
     <message>
         <location filename="../dialog/databasestatus.cpp" line="49"/>
-        <source>Total Resources:</source>
+        <source>Total resources:</source>
         <translation>Gesamte Ressourcen:</translation>
     </message>
     <message>
         <location filename="../dialog/databasestatus.cpp" line="51"/>
-        <source>Unindexed Notes:</source>
+        <source>Unindexed notes:</source>
         <translation>Nicht indizierte Notizen:</translation>
     </message>
     <message>
         <location filename="../dialog/databasestatus.cpp" line="53"/>
-        <source>Unindexed Resources:</source>
+        <source>Unindexed resources:</source>
         <translation>Nicht indizierte Ressourcen:</translation>
     </message>
     <message>
         <location filename="../dialog/databasestatus.cpp" line="55"/>
-        <source>Thumbnails Needed:</source>
+        <source>Thumbnails needed:</source>
         <translation>Benötigte Thumbnails:</translation>
     </message>
     <message>
@@ -1063,7 +1063,7 @@ some window managers)</source>
     </message>
     <message>
         <location filename="../gui/browserWidgets/editorbuttonbar.cpp" line="54"/>
-        <source>Insert Date &amp;&amp; Time</source>
+        <source>Insert Date Time</source>
         <translation>Datum &amp;&amp; Uhrzeit einfügen</translation>
     </message>
     <message>
@@ -1136,7 +1136,7 @@ some window managers)</source>
     <message>
         <location filename="../gui/browserWidgets/editorbuttonbar.cpp" line="217"/>
         <location filename="../gui/browserWidgets/editorbuttonbar.cpp" line="218"/>
-        <source>Insert Date &amp; Time</source>
+        <source>Insert Date Time</source>
         <translation>Datum und Zeit einfügen</translation>
     </message>
     <message>
@@ -1896,7 +1896,7 @@ Siehe Liste unter http://www.w3schools.com/charsets/.</translation>
     </message>
     <message>
         <location filename="../dialog/preferences/localepreferences.cpp" line="42"/>
-        <source>Czech (Check Republic)</source>
+        <source>Czech</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -2650,7 +2650,7 @@ Entschlüsselung nicht möglich.</translation>
     </message>
     <message>
         <location filename="../gui/nmainmenubar.cpp" line="112"/>
-        <source>&amp;Import Notes</source>
+        <source>&amp;Import notes</source>
         <translation>Nachrichten &amp;importieren</translation>
     </message>
     <message>
@@ -2975,7 +2975,7 @@ Entschlüsselung nicht möglich.</translation>
     </message>
     <message>
         <location filename="../gui/nmainmenubar.cpp" line="106"/>
-        <source>&amp;Export Notes as PDF</source>
+        <source>&amp;Export notes as PDF</source>
         <translation>&amp;Expotieren von Notizen als PDF</translation>
     </message>
     <message>
@@ -3818,7 +3818,7 @@ Möchtest Du fortfahren?</translation>
     </message>
     <message>
         <location filename="../gui/nwebview.cpp" line="132"/>
-        <source>Insert Date &amp;&amp; Time</source>
+        <source>Insert Date Time</source>
         <translation>Datum &amp;&amp; Uhrzeit einfügen</translation>
     </message>
     <message>
@@ -4011,7 +4011,7 @@ Bis zur Installation von Tidy können keine Notizen gespeichert werden.</transla
     </message>
     <message>
         <location filename="../nixnote.cpp" line="1832"/>
-        <source>Import Notes</source>
+        <source>Import notes</source>
         <translation>Notizen importieren</translation>
     </message>
     <message>
@@ -4042,7 +4042,7 @@ Bis zur Installation von Tidy können keine Notizen gespeichert werden.</transla
     </message>
     <message>
         <location filename="../nixnote.cpp" line="553"/>
-        <source>Shortcut Notes</source>
+        <source>Shortcut notes</source>
         <translation>Favoriten-Notizen</translation>
     </message>
     <message>
@@ -4052,7 +4052,7 @@ Bis zur Installation von Tidy können keine Notizen gespeichert werden.</transla
     </message>
     <message>
         <location filename="../nixnote.cpp" line="557"/>
-        <source>Recently Updated Notes</source>
+        <source>Recently updated</source>
         <translation>Aktualisierte Notizen</translation>
     </message>
     <message>
@@ -4957,12 +4957,12 @@ oder drücke eine Taste oder verwende die rechte oder mittlere Maustaste, um die
     <name>SyncRunner</name>
     <message>
         <location filename="../threads/syncrunner.cpp" line="135"/>
-        <source>Beginning Sync</source>
+        <source>Beginning sync</source>
         <translation>Starte die Synchronisierung</translation>
     </message>
     <message>
         <location filename="../threads/syncrunner.cpp" line="143"/>
-        <source>Downloading changes</source>
+        <source>Downloading changes..</source>
         <translation>Lade Änderungen herunter</translation>
     </message>
     <message>

@@ -812,29 +812,29 @@ posílejte prosím na &lt;i&gt;Milos.Kozina@email.cz&lt;/i&gt;.&lt;/p&gt;&lt;/sp
     </message>
     <message>
         <location filename="../dialog/databasestatus.cpp" line="47"/>
-        <source>Total Notes:</source>
+        <source>Total notes:</source>
         <translation>Poznámek celkem:</translation>
     </message>
     <message>
         <location filename="../dialog/databasestatus.cpp" line="49"/>
-        <source>Total Resources:</source>
+        <source>Total resources:</source>
         <translatorcomment>Např. obrázky v HTML, atd.</translatorcomment>
         <translation>Příloh celkem:</translation>
     </message>
     <message>
         <location filename="../dialog/databasestatus.cpp" line="51"/>
-        <source>Unindexed Notes:</source>
+        <source>Unindexed notes:</source>
         <translation>Nezindexovované poznámky:</translation>
     </message>
     <message>
         <location filename="../dialog/databasestatus.cpp" line="53"/>
-        <source>Unindexed Resources:</source>
+        <source>Unindexed resources:</source>
         <translatorcomment>Např. obrázky v HTML, atd.</translatorcomment>
         <translation>Nezindexovované přílohy:</translation>
     </message>
     <message>
         <location filename="../dialog/databasestatus.cpp" line="55"/>
-        <source>Thumbnails Needed:</source>
+        <source>Thumbnails needed:</source>
         <translation>Náhledy poznámek:</translation>
     </message>
     <message>
@@ -1075,7 +1075,7 @@ posílejte prosím na &lt;i&gt;Milos.Kozina@email.cz&lt;/i&gt;.&lt;/p&gt;&lt;/sp
     </message>
     <message>
         <location filename="../gui/browserWidgets/editorbuttonbar.cpp" line="54"/>
-        <source>Insert Date &amp;&amp; Time</source>
+        <source>Insert Date Time</source>
         <translation>Vložit Datum a Čas</translation>
     </message>
     <message>
@@ -1148,7 +1148,7 @@ posílejte prosím na &lt;i&gt;Milos.Kozina@email.cz&lt;/i&gt;.&lt;/p&gt;&lt;/sp
     <message>
         <location filename="../gui/browserWidgets/editorbuttonbar.cpp" line="217"/>
         <location filename="../gui/browserWidgets/editorbuttonbar.cpp" line="218"/>
-        <source>Insert Date &amp; Time</source>
+        <source>Insert Date Time</source>
         <translation>Vložit Datum a Čas</translation>
     </message>
     <message>
@@ -1915,7 +1915,7 @@ Seznam např. na http://www.w3schools.com/charsets/ .</translation>
     </message>
     <message>
         <location filename="../dialog/preferences/localepreferences.cpp" line="42"/>
-        <source>Czech (Check Republic)</source>
+        <source>Czech</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -2671,7 +2671,7 @@ Dešifrování selhalo.</translation>
     </message>
     <message>
         <location filename="../gui/nmainmenubar.cpp" line="112"/>
-        <source>&amp;Import Notes</source>
+        <source>&amp;Import notes</source>
         <translation>&amp;Import poznámek</translation>
     </message>
     <message>
@@ -2996,7 +2996,7 @@ Dešifrování selhalo.</translation>
     </message>
     <message>
         <location filename="../gui/nmainmenubar.cpp" line="106"/>
-        <source>&amp;Export Notes as PDF</source>
+        <source>&amp;Export notes as PDF</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -3844,7 +3844,7 @@ Přejete si pokračovat?</translation>
     </message>
     <message>
         <location filename="../gui/nwebview.cpp" line="132"/>
-        <source>Insert Date &amp;&amp; Time</source>
+        <source>Insert Date Time</source>
         <translation>Vložit Datum a Čas</translation>
     </message>
     <message>
@@ -4038,7 +4038,7 @@ Dokud nebude tidy nainstalován, nebude možné ukládat žádné poznámky.</tr
     </message>
     <message>
         <location filename="../nixnote.cpp" line="1832"/>
-        <source>Import Notes</source>
+        <source>Import notes</source>
         <translation>Import poznámek</translation>
     </message>
     <message>
@@ -4070,7 +4070,7 @@ Dokud nebude tidy nainstalován, nebude možné ukládat žádné poznámky.</tr
     </message>
     <message>
         <location filename="../nixnote.cpp" line="553"/>
-        <source>Shortcut Notes</source>
+        <source>Shortcut notes</source>
         <translatorcomment>TODO: ověřit v GUI</translatorcomment>
         <translation>Zkratky na poznámky</translation>
     </message>
@@ -4081,7 +4081,7 @@ Dokud nebude tidy nainstalován, nebude možné ukládat žádné poznámky.</tr
     </message>
     <message>
         <location filename="../nixnote.cpp" line="557"/>
-        <source>Recently Updated Notes</source>
+        <source>Recently updated</source>
         <translation>Nedávno upravované poznámky</translation>
     </message>
     <message>
@@ -5012,12 +5012,12 @@ nebo ukončete snímkování libovolnou klávesou či prostředním tlačítekm 
     <name>SyncRunner</name>
     <message>
         <location filename="../threads/syncrunner.cpp" line="135"/>
-        <source>Beginning Sync</source>
+        <source>Beginning sync</source>
         <translation>Zahajuji synchronizaci</translation>
     </message>
     <message>
         <location filename="../threads/syncrunner.cpp" line="143"/>
-        <source>Downloading changes</source>
+        <source>Downloading changes..</source>
         <translation>Stahuji změny</translation>
     </message>
     <message>

@@ -804,28 +804,28 @@
     </message>
     <message>
         <location filename="../dialog/databasestatus.cpp" line="47"/>
-        <source>Total Notes:</source>
+        <source>Total notes:</source>
         <translation>总笔记数：</translation>
     </message>
     <message>
         <location filename="../dialog/databasestatus.cpp" line="49"/>
-        <source>Total Resources:</source>
+        <source>Total resources:</source>
         <translatorcomment>What is the &quot;resources&quot; really mean?</translatorcomment>
         <translation>总资源数：</translation>
     </message>
     <message>
         <location filename="../dialog/databasestatus.cpp" line="51"/>
-        <source>Unindexed Notes:</source>
+        <source>Unindexed notes:</source>
         <translation>未索引笔记：</translation>
     </message>
     <message>
         <location filename="../dialog/databasestatus.cpp" line="53"/>
-        <source>Unindexed Resources:</source>
+        <source>Unindexed resources:</source>
         <translation>未索引资源：</translation>
     </message>
     <message>
         <location filename="../dialog/databasestatus.cpp" line="55"/>
-        <source>Thumbnails Needed:</source>
+        <source>Thumbnails needed:</source>
         <translation>所需缩略图数：</translation>
     </message>
     <message>
@@ -1072,7 +1072,7 @@
     </message>
     <message>
         <location filename="../gui/browserWidgets/editorbuttonbar.cpp" line="54"/>
-        <source>Insert Date &amp;&amp; Time</source>
+        <source>Insert Date Time</source>
         <translation>插入日期时间</translation>
     </message>
     <message>
@@ -1145,7 +1145,7 @@
     <message>
         <location filename="../gui/browserWidgets/editorbuttonbar.cpp" line="217"/>
         <location filename="../gui/browserWidgets/editorbuttonbar.cpp" line="218"/>
-        <source>Insert Date &amp; Time</source>
+        <source>Insert Date Time</source>
         <translation>插入日期时间</translation>
     </message>
     <message>
@@ -1909,7 +1909,7 @@ See http://www.w3schools.com/charsets/ for list.</source>
     </message>
     <message>
         <location filename="../dialog/preferences/localepreferences.cpp" line="42"/>
-        <source>Czech (Check Republic)</source>
+        <source>Czech</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -2669,7 +2669,7 @@ Unable to decrypt.</source>
     </message>
     <message>
         <location filename="../gui/nmainmenubar.cpp" line="112"/>
-        <source>&amp;Import Notes</source>
+        <source>&amp;Import notes</source>
         <translation>导入笔记(&amp;I)</translation>
     </message>
     <message>
@@ -2994,7 +2994,7 @@ Unable to decrypt.</source>
     </message>
     <message>
         <location filename="../gui/nmainmenubar.cpp" line="106"/>
-        <source>&amp;Export Notes as PDF</source>
+        <source>&amp;Export notes as PDF</source>
         <translation>导出笔记为 PDF(&amp;E)</translation>
     </message>
     <message>
@@ -3840,7 +3840,7 @@ Do you wish to continue?</source>
     </message>
     <message>
         <location filename="../gui/nwebview.cpp" line="132"/>
-        <source>Insert Date &amp;&amp; Time</source>
+        <source>Insert Date Time</source>
         <translation>插入日期时间</translation>
     </message>
     <message>
@@ -4032,7 +4032,7 @@ Until tidy is installed you cannot save any notes.</source>
     </message>
     <message>
         <location filename="../nixnote.cpp" line="1832"/>
-        <source>Import Notes</source>
+        <source>Import notes</source>
         <translation>导入笔记</translation>
     </message>
     <message>
@@ -4063,7 +4063,7 @@ Until tidy is installed you cannot save any notes.</source>
     </message>
     <message>
         <location filename="../nixnote.cpp" line="553"/>
-        <source>Shortcut Notes</source>
+        <source>Shortcut notes</source>
         <translation>已收藏笔记</translation>
     </message>
     <message>
@@ -4073,7 +4073,7 @@ Until tidy is installed you cannot save any notes.</source>
     </message>
     <message>
         <location filename="../nixnote.cpp" line="557"/>
-        <source>Recently Updated Notes</source>
+        <source>Recently updated</source>
         <translation>最近更新笔记</translation>
     </message>
     <message>
@@ -5003,12 +5003,12 @@ any key or using the right or middle mouse buttons.</source>
     <name>SyncRunner</name>
     <message>
         <location filename="../threads/syncrunner.cpp" line="135"/>
-        <source>Beginning Sync</source>
+        <source>Beginning sync</source>
         <translation>开始同步</translation>
     </message>
     <message>
         <location filename="../threads/syncrunner.cpp" line="143"/>
-        <source>Downloading changes</source>
+        <source>Downloading changes..</source>
         <translation>正在下载修改</translation>
     </message>
     <message>

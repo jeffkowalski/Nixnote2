@@ -792,27 +792,27 @@
     </message>
     <message>
         <location filename="../dialog/databasestatus.cpp" line="47"/>
-        <source>Total Notes:</source>
+        <source>Total notes:</source>
         <translation>Notes totales :</translation>
     </message>
     <message>
         <location filename="../dialog/databasestatus.cpp" line="49"/>
-        <source>Total Resources:</source>
+        <source>Total resources:</source>
         <translation>Ressources totales :</translation>
     </message>
     <message>
         <location filename="../dialog/databasestatus.cpp" line="51"/>
-        <source>Unindexed Notes:</source>
+        <source>Unindexed notes:</source>
         <translation>Notes non indexées :</translation>
     </message>
     <message>
         <location filename="../dialog/databasestatus.cpp" line="53"/>
-        <source>Unindexed Resources:</source>
+        <source>Unindexed resources:</source>
         <translation>Ressources non indexées :</translation>
     </message>
     <message>
         <location filename="../dialog/databasestatus.cpp" line="55"/>
-        <source>Thumbnails Needed:</source>
+        <source>Thumbnails needed:</source>
         <translation>Vignettes nécessaires :</translation>
     </message>
     <message>
@@ -1049,7 +1049,7 @@
     </message>
     <message>
         <location filename="../gui/browserWidgets/editorbuttonbar.cpp" line="54"/>
-        <source>Insert Date &amp;&amp; Time</source>
+        <source>Insert Date Time</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -1122,7 +1122,7 @@
     <message>
         <location filename="../gui/browserWidgets/editorbuttonbar.cpp" line="217"/>
         <location filename="../gui/browserWidgets/editorbuttonbar.cpp" line="218"/>
-        <source>Insert Date &amp; Time</source>
+        <source>Insert Date Time</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -1881,7 +1881,7 @@ Voir http://www.w3schools.com/charsets/ pour la liste.</translation>
     </message>
     <message>
         <location filename="../dialog/preferences/localepreferences.cpp" line="42"/>
-        <source>Czech (Check Republic)</source>
+        <source>Czech</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -2634,7 +2634,7 @@ Impossible de déchiffrer.</translation>
     </message>
     <message>
         <location filename="../gui/nmainmenubar.cpp" line="112"/>
-        <source>&amp;Import Notes</source>
+        <source>&amp;Import notes</source>
         <translation>&amp;Importer des notes</translation>
     </message>
     <message>
@@ -2959,7 +2959,7 @@ Impossible de déchiffrer.</translation>
     </message>
     <message>
         <location filename="../gui/nmainmenubar.cpp" line="106"/>
-        <source>&amp;Export Notes as PDF</source>
+        <source>&amp;Export notes as PDF</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -3803,7 +3803,7 @@ Do you wish to continue?</source>
     </message>
     <message>
         <location filename="../gui/nwebview.cpp" line="132"/>
-        <source>Insert Date &amp;&amp; Time</source>
+        <source>Insert Date Time</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -3995,7 +3995,7 @@ Tant que tidy n&apos;est pas installé, vous ne pourrez pas sauvegarder des note
     </message>
     <message>
         <location filename="../nixnote.cpp" line="1832"/>
-        <source>Import Notes</source>
+        <source>Import notes</source>
         <translation>Importer des notes</translation>
     </message>
     <message>
@@ -4026,7 +4026,7 @@ Tant que tidy n&apos;est pas installé, vous ne pourrez pas sauvegarder des note
     </message>
     <message>
         <location filename="../nixnote.cpp" line="553"/>
-        <source>Shortcut Notes</source>
+        <source>Shortcut notes</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -4036,7 +4036,7 @@ Tant que tidy n&apos;est pas installé, vous ne pourrez pas sauvegarder des note
     </message>
     <message>
         <location filename="../nixnote.cpp" line="557"/>
-        <source>Recently Updated Notes</source>
+        <source>Recently updated</source>
         <translation>Notes récemment modifiées</translation>
     </message>
     <message>
@@ -4960,12 +4960,12 @@ en appuyant sur n&apos;importe quelle touche.</translation>
     <name>SyncRunner</name>
     <message>
         <location filename="../threads/syncrunner.cpp" line="135"/>
-        <source>Beginning Sync</source>
+        <source>Beginning sync</source>
         <translation>Synchronisation en cours</translation>
     </message>
     <message>
         <location filename="../threads/syncrunner.cpp" line="143"/>
-        <source>Downloading changes</source>
+        <source>Downloading changes..</source>
         <translation>Téléchargement des changements</translation>
     </message>
     <message>
