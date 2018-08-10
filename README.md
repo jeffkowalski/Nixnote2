@@ -35,6 +35,7 @@ More info in: [DOCKER README](docs/DOCKER-README.md)
   * Install qt5 and poppler
     * ```sudo apt-get install -y libpoppler-qt5-dev```
     * ```sudo apt-get install -y libqt5webkit5-dev```
+    * ```sudo apt-get install -y qttools5-dev-tools```
     * ```sudo apt install -y qt5-qmake```
   * Qt: you can either get Qt packages for your distribution or as alternative you can download qt5 directly
     from [qt.io/download](https://www.qt.io/download).
