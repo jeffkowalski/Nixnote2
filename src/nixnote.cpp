@@ -104,6 +104,9 @@ extern Global global;
 
 class SyncRunner;
 
+// Define/allocate the singleton instance pointer
+NixNote *NixNote::singleton;
+
 //*************************************************
 //* This is the main class that is used to start
 //* everything else.
@@ -224,6 +227,8 @@ NixNote::NixNote(QWidget *parent) : QMainWindow(parent) {
     connect(networkManager, SIGNAL(finished(QNetworkReply * )), this, SLOT(onNetworkManagerFinished(QNetworkReply * )));
 
     clientId = global.getOrCreateMemoryKey();
+    // Set the static singleton instance pointer (q.v. get())
+    singleton = this;
     QLOG_DEBUG() << "Exiting NixNote constructor";
 }
 
@@ -259,6 +264,13 @@ NixNote::~NixNote() {
 
 
 //****************************************************************
+//* Public static method to get the singleton instance of NixNote
+//****************************************************************
+NixNote *NixNote::get() {
+    return singleton;
+}
+
+//****************************************************************
 //* Setup the user interface
 //****************************************************************
 void NixNote::setupGui() {
@@ -269,6 +281,8 @@ void NixNote::setupGui() {
     if (!wIcon.isNull()) {
         setWindowIcon(wIcon);
     }
+
+    global.setSortOrder(global.readSettingSortOrder());
 
     //QLOG_TRACE() << "Setting up menu bar";
     searchText = new LineEdit();
@@ -314,11 +328,13 @@ void NixNote::setupGui() {
 
     toolBar->addSeparator();
 
-    syncButton = toolBar->addAction(
-        global.getIconResource(":synchronizeIcon"),
-        global.appendShortcutInfo(tr("Sync"), "Tools_Synchronize")
-    );
+    // Sync shortcut moved from the menu, to this toolbar button
+    // This enables it to apply globally in all app windows
+    syncButtonShortcut = new QShortcut(this);
+    syncButton = toolBar->addAction(global.getIconResource(":synchronizeIcon"), tr("Sync"));
+    syncButton->setToolTip(tr("Sync") + global.setupShortcut(syncButtonShortcut, "Tools_Synchronize"));
     syncButton->setPriority(QAction::LowPriority);   // Hide the text by the icon
+    syncButtonShortcut->setContext(Qt::ApplicationShortcut); // Make sync key work in all app windows
 
     homeButtonShortcut = new QShortcut(this);
     homeButton = toolBar->addAction(global.getIconResource(":homeIcon"), tr("All Notes"));
@@ -353,6 +369,7 @@ void NixNote::setupGui() {
 
 
     connect(syncButton, SIGNAL(triggered()), this, SLOT(synchronize()));
+    connect(syncButtonShortcut, SIGNAL(activated()), this, SLOT(synchronize()));
 
     connect(homeButton, SIGNAL(triggered()), this, SLOT(resetView()));
     connect(homeButtonShortcut, SIGNAL(activated()), this, SLOT(resetView()));
@@ -551,7 +568,8 @@ void NixNote::setupGui() {
     }
 
     trayIcon = new QSystemTrayIcon(global.getIconResource(":trayIcon"), this);
-    trayIcon->setContextMenu(createTrayContexMenu());
+    TrayMenu *trayIconContextMenu = createTrayContexMenu();
+    trayIcon->setContextMenu(trayIconContextMenu);
     QLOG_DEBUG() << "Tray status #2: showTrayIcon=" << showTrayIcon
                  << ", closeToTray=" << closeToTray
                  << ", minimizeToTray=" << minimizeToTray;
@@ -1130,7 +1148,7 @@ void NixNote::quitNixNote() {
  */
 void NixNote::closeShortcut() {
     if (closeToTray && isVisible())
-        showMainWindow();
+        showMainWindow(); // wtf?
     else
         quitNixNote();
 }
@@ -2044,10 +2062,6 @@ void NixNote::resetView() {
 // Create a new note
 //*****************************
 void NixNote::newNote() {
-    // in case its called from systray, the main window may be hidden
-    showMainWindow();
-
-
     QString newNoteBody = QString("<?xml version=\"1.0\" encoding=\"UTF-8\"?>") +
                           QString("<!DOCTYPE en-note SYSTEM \"http://xml.evernote.com/pub/enml2.dtd\">") +
                           QString(
@@ -2564,22 +2578,25 @@ void NixNote::findReplaceAllInNotePressed() {
 //**************************************************************
 void NixNote::heartbeatTimerTriggered() {
     QByteArray data = global.sharedMemory->read();
+
     if (data.startsWith("SYNCHRONIZE")) {
-        QLOG_DEBUG() << "Sync requested by shared memory segment.";
+        QLOG_INFO() << "SYNCHRONIZE requested by shared memory segment.";
         this->synchronize();
         return;
     }
-    if (data.startsWith("IMMEDIATE_SHUTDOWN")) {
-        QLOG_ERROR() << "Immediate shutdown requested by shared memory segment.";
+    else if (data.startsWith("IMMEDIATE_SHUTDOWN")) {
+        QLOG_INFO() << "IMMEDIATE_SHUTDOWN requested by shared memory segment.";
         this->quitNixNote();
         return;
     }
-    if (data.startsWith("SHOW_WINDOW")) {
+    else if (data.startsWith("SHOW_WINDOW")) {
+        QLOG_INFO() << "SHOW_WINDOW requested by shared memory segment.";
         this->raise();
         this->showMaximized();
         return;
     }
-    if (data.startsWith("QUERY:")) {
+    else if (data.startsWith("QUERY:")) {
+        QLOG_INFO() << "QUERY requested by shared memory segment.";
         QList<qint32> results;
         QString query = data.mid(6);
         QLOG_DEBUG() << query;
@@ -2619,17 +2636,20 @@ void NixNote::heartbeatTimerTriggered() {
 
         global.sharedMemory->write(xmlString);
     }
-    if (data.startsWith("OPEN_NOTE:")) {
+    else if (data.startsWith("OPEN_NOTE:")) {
+        QLOG_INFO() << "OPEN_NOTE requested by shared memory segment.";
         QString number = data.mid(10);
         qint32 note = number.toInt();
         NoteTable noteTable(global.db);
         if (noteTable.exists(note))
             this->openExternalNote(note);
     }
-    if (data.startsWith("NEW_NOTE")) {
+    else if (data.startsWith("NEW_NOTE")) {
+        QLOG_INFO() << "NEW_NOTE requested by shared memory segment.";
         this->newExternalNote();
     }
-    if (data.startsWith("CMDLINE_QUERY:")) {
+    else if (data.startsWith("CMDLINE_QUERY:")) {
+        QLOG_INFO() << "CMDLINE_QUERY requested by shared memory segment.";
         QString xml = data.mid(14);
         CmdLineQuery query;
         query.unwrap(xml.trimmed());
@@ -2641,26 +2661,30 @@ void NixNote::heartbeatTimerTriggered() {
         engine.filter(filter, &lids);
         query.write(lids, tmpFile);
     }
-    if (data.startsWith("DELETE_NOTE:")) {
+    else if (data.startsWith("DELETE_NOTE:")) {
+        QLOG_INFO() << "DELETE_NOTE requested by shared memory segment.";
         qint32 lid = data.mid(12).toInt();
         NoteTable noteTable(global.db);
         noteTable.deleteNote(lid, true);
         updateSelectionCriteria();
     }
-    if (data.startsWith("EMAIL_NOTE:")) {
+    else if (data.startsWith("EMAIL_NOTE:")) {
+        QLOG_INFO() << "EMAIL_NOTE requested by shared memory segment.";
         QString xml = data.mid(11);
         EmailNote email;
         email.unwrap(xml);
         email.sendEmail();
     }
-    if (data.startsWith("ALTER_NOTE:")) {
+    else if (data.startsWith("ALTER_NOTE:")) {
+        QLOG_INFO() << "ALTER_NOTE requested by shared memory segment.";
         QString xml = data.mid(11);
         AlterNote alter;
         alter.unwrap(xml);
         alter.alterNote();
         updateSelectionCriteria();
     }
-    if (data.startsWith("READ_NOTE:")) {
+    else if (data.startsWith("READ_NOTE:")) {
+        QLOG_INFO() << "READ_NOTE requested by shared memory segment.";
         QString xml = data.mid(10);
         ExtractNoteText data;
         data.unwrap(xml);
@@ -2677,33 +2701,24 @@ void NixNote::heartbeatTimerTriggered() {
         responseMapper.write(reply);
         responseMapper.detach();
     }
-    if (data.startsWith("SIGNAL_GUI:")) {
+    else if (data.startsWith("SIGNAL_GUI:")) {
+        QLOG_INFO() << "SIGNAL_GUI requested by shared memory segment.";
         QString cmd = data.mid(12);
         QLOG_DEBUG() << "COMMAND REQUESTED: " << cmd;
         if (cmd.startsWith("SYNCHRONIZE")) {
             this->synchronize();
         }
-        if (cmd.startsWith("SHUTDOWN")) {
-            this->close();
+        else if (cmd.startsWith("SHUTDOWN")) {
+            this->quitNixNote();
         }
-        if (cmd.startsWith("SHOW")) {
-            if (!isVisible())
-                this->showMainWindow();
-            this->raise();
-            this->activateWindow();
-            this->showNormal();
-            this->tabWindow->currentBrowser()->editor->setFocus();
+        else if (cmd.startsWith("SHOW")) {
+            this->restoreAndShowMainWindow();
         }
-        if (cmd.startsWith("NEW_NOTE")) {
+        else if (cmd.startsWith("NEW_NOTE")) {
+            // newNote() includes show window
             this->newNote();
-            if (!isVisible())
-                this->showMainWindow();
-            this->raise();
-            this->activateWindow();
-            this->showNormal();
-            this->tabWindow->currentBrowser()->editor->setFocus();
         }
-        if (cmd.startsWith("NEW_EXTERNAL_NOTE")) {
+        else if (cmd.startsWith("NEW_EXTERNAL_NOTE")) {
             this->newExternalNote();
             this->raise();
             this->activateWindow();
@@ -2713,7 +2728,7 @@ void NixNote::heartbeatTimerTriggered() {
                 tabWindow->lastExternal->browser->editor->setFocus();
             }
         }
-        if (cmd.startsWith("OPEN_EXTERNAL_NOTE")) {
+        else if (cmd.startsWith("OPEN_EXTERNAL_NOTE")) {
             cmd = cmd.mid(18);
             qint32 lid = cmd.toInt();
             this->openExternalNote(lid);
@@ -2724,10 +2739,10 @@ void NixNote::heartbeatTimerTriggered() {
             }
             return;
         }
-        if (cmd.startsWith("OPEN_NOTE")) {
+        else if (cmd.startsWith("OPEN_NOTE")) {
             bool newTab = false;
 
-            this->showMainWindow();
+            this->restoreAndShowMainWindow();
 
             if (cmd.startsWith("OPEN_NOTE_NEW_TAB")) {
                 newTab = true;
@@ -2754,14 +2769,15 @@ void NixNote::heartbeatTimerTriggered() {
             global.filterCriteria.push_back(newFilter);
             global.filterPosition++;
             this->openNote(newTab);
-            this->raise();
-            this->activateWindow();
-            this->showNormal();
-            this->tabWindow->currentBrowser()->editor->setFocus();
-        }
-    }
 
-    //free(buffer); // Fixes memory leak
+            this->restoreAndShowMainWindow();
+        } else {
+            QLOG_DEBUG() << "unhandled command";
+        }
+    } else {
+        // not sure what all can mean "no command" (maybe later improve)
+        //QLOG_DEBUG() << "heartbeatTimerTriggered: unhandled command";
+    }
 }
 
 
@@ -2809,22 +2825,36 @@ void NixNote::fastPrintNote() {
 }
 
 
-//***********************************************************
-//* Toggle the window visibility.  Used when closing to
-//* the tray.
-//************************************************************
+/**
+ * Toggle the window visibility.  Used when closing to
+ * the tray.
+ */
 void NixNote::showMainWindow() {
-    setWindowState(Qt::WindowActive);
-    if (minimizeToTray || closeToTray) {
-        this->show();
-        this->raise();
-        this->showNormal();
-        this->activateWindow();
-        this->setFocus();
-    } else {
-        this->showNormal();
-        this->setFocus();
-    }
+    QLOG_DEBUG() << "showMainWindow";
+    this->setWindowState(Qt::WindowActive);
+
+    this->showNormal();            // Restores the widget after it has been maximized or minimized
+    this->show();                  // Shows the widget and its child widgets
+    this->raise();                 // Raises this widget to the top of the parent widget's stack
+    this->activateWindow();        // Sets the top-level widget containing this widget to be the active window
+    // Gives the keyboard input focus to this widget (or its focus proxy) if this widget or one of its parents is the active window
+    this->setFocus();
+    this->show();                  // Shows the widget and its child widgets
+}
+
+/**
+ * This is more strong version which should also recover window, if open but not minimized.
+ * May have side effects.
+ */
+void NixNote::restoreAndShowMainWindow() {
+    QLOG_DEBUG() << "restoreAndShowMainWindow";
+    setWindowFlags(Qt::WindowStaysOnTopHint); // recovery from "behind other window" - may have side effects
+
+    // normal "show"
+    showMainWindow();
+
+    this->setWindowFlags(Qt::Window);
+    this->show();                  // Shows the widget and its child widgets
 }
 
 
@@ -2832,15 +2862,18 @@ void NixNote::trayActivatedAction(int value) {
     //int newQuickNote = 3;
 
     if (value == TRAY_ACTION_SHOW) {
-        showMainWindow();
+        restoreAndShowMainWindow();
     } else if (value == TRAY_ACTION_NEWNOTE) {
-        showMainWindow();
+        restoreAndShowMainWindow();
         newNote();
     }
     // if (value == newQuickNote) this->newExternalNote();
 }
 
-// The tray icon was activated.  If it was double clicked we restore the gui.
+/**
+ * The tray icon was activated.  E.g. ff it was double clicked we restore the gui.
+ *
+ */
 void NixNote::onTrayActivated(QSystemTrayIcon::ActivationReason reason) {
     QLOG_DEBUG() << "onTrayActivated reason=" << reason;
 
@@ -3264,14 +3297,16 @@ void NixNote::pauseIndexing(bool value) {
 // View the message log info
 void NixNote::openMessageLogInfo() {
     QMessageBox mb;
-    mb.information(this, tr("Log file info"),
-                   tr("Main app log file is located at:")
-                   + global.fileManager.getMainLogFileName()
-                   + ".\n\n"
-                   + tr("Please use some appropriate log viewer app to look at logs.") + "\n\n "
-                   + tr("If you want to create support issue, where log info is needed, please use DEBUG log level"
-                        " and post whole log inclusive subdirectory."
-                        " Just before posting make sure, that no private info, like private note text, is included inside.")
+    mb.information(this, tr("Application file(s) info"),
+                   tr("Config files are located at:") + global.fileManager.getConfigDir() + "\n"
+                   + tr("Note database files are located at:") + global.fileManager.getUserDataDir() + "\n\n"
+                   + tr("Main app log file is located at:") + global.fileManager.getMainLogFileName() + "\n"
+                   + "\n"
+                   + tr("See project wiki section FAQ (Menu Help/Project wiki) for more info how to:") + "\n"
+                   + tr("* change log level") + "\n"
+                   + tr("* look at log") + "\n"
+                   + tr("* how to add content of log file to github issue") + "\n"
+                   + tr("* how to change data location")
     );
 }
 

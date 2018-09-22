@@ -1,19 +1,18 @@
-# NixNote2
+# NixNote v2.1
 ## Introduction
 
-Fork of [baumgarr/nixnote2](https://github.com/baumgarr/nixnote2) - An unofficial client of Evernote for Linux.
+Nixnote is Evernote desktop client for Linux.
 
-This version contains the original code, selected changes merged from other forks and my changes.
-
-* Wiki
-  * [Getting started](https://github.com/robert7/nixnote2/wiki/Getting-started)
-  * [New features in v2.1](https://github.com/robert7/nixnote2/wiki/New-features-in-v2.1)
-* [CHANGELOG](docs/CHANGELOG.md)
-* [Binary releases](https://github.com/robert7/nixnote2/releases)
+* [Getting started](https://github.com/robert7/nixnote2/wiki/Getting-started)
+* [New features in v2.1](https://github.com/robert7/nixnote2/wiki/New-features-in-v2.1)
+* [CHANGELOG](https://github.com/robert7/nixnote2/blob/master/debian/changelog)
+* [Howto install & binary downloads](https://github.com/robert7/nixnote2/releases)
+  * For Ubuntu users its recommended to install native package from [NixNote PPA](https://github.com/robert7/nixnote2/wiki/NixNote-PPA) (although the AppImage version will also work).
+  * For any linux distribution: [download AppImage, mark as executable & run](https://github.com/robert7/nixnote2/wiki/HowTo---Run-AppImage)
 
 ## Building from source
 
-Tha app is mainly targeted at Linux, but it should compile quite easily on Windows and
+This app is mainly targeted at Linux, but it should compile quite easily on Windows and
 also macOS config is already present (see more detailed info bellow). As lot of refactoring
 has been made and I can't currently try anything else then linux, it is quite probable
 that minor adjustments are needed for the all non linux builds.
@@ -23,7 +22,7 @@ that minor adjustments are needed for the all non linux builds.
 This should work out of the box, no fiddling with any dependencies
 is needed. The created binary image should work on all ~recent distributions (at least
 in theory).
-Basic docker familiarity with docker is probably quite helpful.
+Basic docker familiarity with docker is helpful.
 
 More info in: [DOCKER README](docs/DOCKER-README.md)
 
@@ -41,25 +40,26 @@ More info in: [DOCKER README](docs/DOCKER-README.md)
     * ```sudo apt install -y qt5-qmake```
   * Qt: you can either get Qt packages for your distribution or as alternative you can download qt5 directly
     from [qt.io/download](https://www.qt.io/download).
-    Currently **only supported version is Qt 5.5**. Building against 5.6+ needs source changes
-    (this is on TODO list).
   * ~Optional
     * ```sudo apt-get install -y libopencv-dev libhunspell-dev```
-* Build tidy library
-  * clone [source code](https://github.com/htacg/tidy-html5) switch to master branch
-  * generate makefile
-  ```bash
-  cmake -DCMAKE_BUILD_TYPE=Debug -DENABLE_DEBUG_SYMBOLS:BOOL=TRUE -DBUILD_SHARED_LIB:BOOL=TRUE -DCMAKE_INSTALL_PREFIX=~/usr
-  ```
-  * build
-  ```bash
-  make
-  ```
-  * install
-  ```bash
-  make install
-  ```
-  * library is now copied to ~/usr
+  * Tidy library
+    * Alternative 1: Install from PPA:
+      * `sudo apt install tidy-dev`
+    * Alternative 2: Build tidy library from source:
+      * clone [source code](https://github.com/htacg/tidy-html5) switch to master branch
+      * generate makefile
+      ```bash
+      cmake -DCMAKE_BUILD_TYPE=Debug -DENABLE_DEBUG_SYMBOLS:BOOL=TRUE -DBUILD_SHARED_LIB:BOOL=TRUE -DCMAKE_INSTALL_PREFIX=~/usr
+      ```
+      * build
+      ```bash
+      make
+      ```
+      * install
+      ```bash
+      make install
+      ```
+      * library is now copied to ~/usr
 
 * Get latest source from github...
   * I recommend using `master` branch. There maybe feature/* or release/* available, but this may
@@ -67,7 +67,7 @@ More info in: [DOCKER README](docs/DOCKER-README.md)
 
 * Build
 ```bash
-env PATH=/usr/bin:/bin PKG_CONFIG_PATH=$HOME/usr/lib/pkgconfig qmake NixNote2.pro MOC_DIR=./build RCC_DIR=./build OBJECTS_DIR=./build
+env PATH=/usr/bin:/bin PKG_CONFIG_PATH=$HOME/usr/lib/pkgconfig qmake NixNote21.pro MOC_DIR=./build RCC_DIR=./build OBJECTS_DIR=./build
 make
 ```
 
@@ -88,7 +88,7 @@ I can't currently test if it works.  It is quite probable that it will need mino
 ```bash
 mkdir build
 cd build
-qmake ../nixnote2/NixNote2.pro
+qmake ../nixnote2/NixNote21.pro
 make
 ```
 
@@ -103,12 +103,13 @@ deployed anywhere:
 
 ```bash
 > cd build
-> macdeployqt NixNote2.app [-no-strip]
+> macdeployqt NixNote21.app [-no-strip]
 ```
 
 As far as I can tell this will find and copy all required dependencies into the app bundle and modify them so they
 can be loaded from inside that bundle (wherever it ends up).
 
 ### Windows
-Should work Windows, but minor tweaks will be needed to make it run.
-I currently have no time for it. Pull request is welcome.
+Should work on Windows, but minor tweaks will be needed to make it run.
+I currently have no time for it. Pull request is welcome. No sure its worth the effort, as there is
+quite decent official Evernote client for Windows.

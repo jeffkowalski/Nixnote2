@@ -1,12 +1,12 @@
-# currently additionally  PKG_CONFIG_PATH=$$PWD/../libs/usr/lib/pkgconfig is needed
-
-
 QT += core gui widgets printsupport webkit webkitwidgets sql network xml dbus qml
 DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0
 unix {
+    TIDY_DIR=/opt/tidy56
     CONFIG += link_pkgconfig
-    PKGCONFIG += poppler-qt5 libcurl tidy
-    QMAKE_RPATHDIR += $$PWD/../libs/lib
+    PKGCONFIG += poppler-qt5 libcurl
+    QMAKE_RPATHDIR += $$TIDY_DIR/lib
+    LIBS += -L$$TIDY_DIR/lib -ltidy
+    INCLUDEPATH += $$TIDY_DIR/include
 }
 
 unix:!mac:LIBS += -lpthread -g -rdynamic
@@ -14,16 +14,16 @@ unix:!mac:LIBS += -lpthread -g -rdynamic
 win32:INCLUDEPATH += "$$PWD/winlib/includes/poppler/qt5"
 win32:INCLUDEPATH += "$$PWD/winlib/includes"
 win32:LIBS += -L"$$PWD/winlib" -lpoppler-qt5
-win32:RC_ICONS += "$$PWD/images/windowIcon.ico"
+win32:RC_ICONS += "$$PWD/resources/images/windowIcon.ico"
 
 
 mac {
     TARGET = NixNote2
 } else {
-    TARGET = nixnote2
+    TARGET = nixnote21
 }
 TEMPLATE = app
-RESOURCES = NixNote2.qrc
+RESOURCES = NixNote21.qrc
 
 UI_DIR = .
 
@@ -38,20 +38,20 @@ OBJECTS_DIR = $${DESTDIR}
 MOC_DIR = $${DESTDIR}
 
 TRANSLATIONS = \
-    translations/nixnote2_cs_CZ.ts \
-    translations/nixnote2_de.ts    \
-    translations/nixnote2_en_GB.ts \
-    translations/nixnote2_ca.ts    \
-    translations/nixnote2_da.ts    \
-    translations/nixnote2_es.ts    \
-    translations/nixnote2_ja.ts    \
-    translations/nixnote2_pt.ts    \
-    translations/nixnote2_sk.ts    \
-    translations/nixnote2_zh_TW.ts \
-    translations/nixnote2_fr.ts    \
-    translations/nixnote2_pl.ts    \
-    translations/nixnote2_ru.ts    \
-    translations/nixnote2_zh_CN.ts
+    translations/nixnote21_cs_CZ.ts \
+    translations/nixnote21_de.ts    \
+    translations/nixnote21_en_GB.ts \
+    translations/nixnote21_ca.ts    \
+    translations/nixnote21_da.ts    \
+    translations/nixnote21_es.ts    \
+    translations/nixnote21_ja.ts    \
+    translations/nixnote21_pt.ts    \
+    translations/nixnote21_sk.ts    \
+    translations/nixnote21_zh_TW.ts \
+    translations/nixnote21_fr.ts    \
+    translations/nixnote21_pl.ts    \
+    translations/nixnote21_ru.ts    \
+    translations/nixnote21_zh_CN.ts
 
 
 SOURCES += \
@@ -477,18 +477,25 @@ win32:QMAKE_LFLAGS += -Wl,-Bsymbolic-functions
 win32:DEFINES += SMTP_BUILD
 
 isEmpty(PREFIX) {
- PREFIX = /usr/local
+  PREFIX = /usr
 }
 
 binary.path = $${PREFIX}/bin
 binary.files = $${DESTDIR}/$${TARGET}
+binary.CONFIG = no_check_exist
 message("Target binary: $${binary.files}")
 
 desktop.path = $${PREFIX}/share/applications
 desktop.files = $${TARGET}.desktop
 
+#icons.path = $${PREFIX}/share/icons
+#icons.files = resources/icons/*
+
+pixmaps.path = $${PREFIX}/share/pixmaps
+pixmaps.files = resources/icons/hicolor/100x100/apps/nixnote21.png
+
 images.path = $${PREFIX}/share/$$TARGET/images
-images.files = images/*
+images.files = resources/images/*
 
 java.path = $${PREFIX}/share/$$TARGET/java
 java.files = java/*
@@ -496,23 +503,37 @@ java.files = java/*
 help.path = $${PREFIX}/share/$$TARGET/help
 help.files = help/*
 
-resources.path = $${PREFIX}/share/$$TARGET
-resources.files = $$PWD/shortcuts.txt $$PWD/themes.ini $$PWD/LICENSE $$PWD/colors.txt \
-                  $${DESTDIR}/build-version.txt $$PWD/version.txt
+textfiles.path = $${PREFIX}/share/$$TARGET
+textfiles.files = $$PWD/shortcuts.txt $$PWD/themes.ini $$PWD/LICENSE $$PWD/colors.txt \
+                  $${DESTDIR}/version/build-version.txt $$PWD/version.txt
+textfiles.CONFIG = no_check_exist
+
+VERSION_FILES = .
+fullversion.input = VERSION_FILES
+fullversion.output  = $${DESTDIR}/version/build-version.txt
+# echo "$(cat ${QMAKE_FILE_IN})-$(git rev-parse --short HEAD)" >${QMAKE_FILE_OUT}
+fullversion.commands = ./development/create-build-version.sh ${QMAKE_FILE_OUT}
+fullversion.CONFIG += no_link no_check_exist
+QMAKE_EXTRA_COMPILERS += fullversion
+PRE_TARGETDEPS += compiler_fullversion_make_all
+
+man.path = $${PREFIX}/share/man/man1
+man.files = docs/nixnote21.1
+
 
 # compile the translation files:
 isEmpty(QMAKE_LRELEASE) {
     win32:LANGREL = $$[QT_INSTALL_BINS]\lrelease.exe
     else:LANGREL = $$[QT_INSTALL_BINS]/lrelease
 }
-TRANSLATION_TARGET_DIR = $${OUT_PWD}/translations
+TRANSLATION_TARGET_DIR = $${DESTDIR}/translations
 langrel.input = TRANSLATIONS
 langrel.output = $$TRANSLATION_TARGET_DIR/${QMAKE_FILE_BASE}.qm
 langrel.commands = \
-    $$LANGREL -compress -nounfinished -removeidentical ${QMAKE_FILE_IN} -qm $$TRANSLATION_TARGET_DIR/${QMAKE_FILE_BASE}.qm
+    $$LANGREL -compress -nounfinished -removeidentical ${QMAKE_FILE_IN} \
+          -qm $$TRANSLATION_TARGET_DIR/${QMAKE_FILE_BASE}.qm
 langrel.CONFIG += no_link
 QMAKE_EXTRA_COMPILERS += langrel
-# this launches the actual work:
 PRE_TARGETDEPS += compiler_langrel_make_all
 
 
@@ -524,7 +545,7 @@ mac {
     # we go for an appbundle that contains all resources (except
     # the shared library dependencies - use macdeployqt for those).
     images.path = Contents/Resources
-    images.files = images
+    images.files = resources/images
     java.path = Contents/Resources
     java.files = java
     mactranslations.path = Contents/Resources/translations
@@ -536,7 +557,9 @@ mac {
     QMAKE_BUNDLE_DATA += images java mactranslations help
     INSTALLS = binary
 } else {
-    translations.path = $${PREFIX}/share/$$TARGET/translations
-    translations.files = $$files($$TRANSLATION_TARGET_DIR/*.qm)
-    INSTALLS = binary desktop images java translations help resources
+    translations.path = $${PREFIX}/share/$$TARGET
+    translations.files = $$TRANSLATION_TARGET_DIR
+    translations.CONFIG = no_check_exist
+
+    INSTALLS = binary desktop images java help textfiles man translations pixmaps
 }

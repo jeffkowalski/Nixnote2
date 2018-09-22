@@ -127,7 +127,9 @@ int main(int argc, char *argv[]) {
     global.argc = argc;
     global.argv = argv;
 
+    // note guiAvailable is passed by reference and can be modified by cmd line arguments
     int retval = startupConfig.init(argc, argv, guiAvailable);
+    QLOG_DEBUG() << "Startup config ret=" << retval << ", guiAvailable=" << guiAvailable;
     if (retval != 0) {
         return retval;
     }
@@ -189,29 +191,23 @@ int main(int argc, char *argv[]) {
 
     // If we want something other than the GUI, try let the CmdLineTool deal with it.
     if (!startupConfig.gui()) {
+        QLOG_INFO() << "About to handle command line arguments";
         global.purgeTemporaryFilesOnShutdown = startupConfig.purgeTemporaryFiles;
         CmdLineTool cmdline;
         startupConfig.purgeTemporaryFiles = false;
         int retval1 = cmdline.run(startupConfig);
-        if (global.sharedMemory->isAttached())
+        if (global.sharedMemory->isAttached()) {
             global.sharedMemory->detach();
-        QLOG_INFO() << "Exit: retcode=" << retval1;
+        }
+        if (retval1) {
+            QLOG_ERROR() << "Exit FAILURE: retcode=" << retval1;
+
+        } else {
+            QLOG_INFO() << "Exit OK: retcode=" << retval1;
+        }
         delete a;
 
         exit(retval1);
-    }
-
-    QString logPath = global.fileManager.getMainLogFileName();
-    QsLogging::DestinationPtr fileDestination(
-        QsLogging::DestinationFactory::MakeFileDestination(logPath));
-    logger.addDestination(fileDestination.get());
-
-    // from now on logging goes also to log file (up to here only to terminal)
-
-    QLOG_INFO().noquote() << NN_APP_DISPLAY_NAME " " << versionStr << ", build at " << __DATE__ << " at " << __TIME__
-                          << ", with Qt" << QT_VERSION_STR << " running on " << qVersion();
-    if (logger.loggingLevel() > 1) {
-        QLOG_INFO() << "To get more detailed startup logging use --logLevel=1";
     }
 
     // Create a shared memory region.  We use this to communicate
@@ -223,8 +219,9 @@ int main(int argc, char *argv[]) {
         global.sharedMemory->attach();
         global.sharedMemory->detach();
         if (!global.sharedMemory->allocate(512 * 1024)) {
-            QLOG_DEBUG() << "segment created";
+            QLOG_DEBUG() << "Shared memory segment created";
             if (startupConfig.startupNewNote) {
+                QLOG_DEBUG() << "Sending request NEW_NOTE";
                 global.sharedMemory->attach();
                 global.sharedMemory->write(QString("NEW_NOTE"));
                 global.sharedMemory->detach();
@@ -232,26 +229,31 @@ int main(int argc, char *argv[]) {
                 exit(0);  // Exit this one
             }
             if (startupConfig.startupNoteLid > 0) {
+                QString req("OPEN_NOTE" + QString::number(startupConfig.startupNoteLid) + " ");
+                QLOG_DEBUG() << "Sending request " << req;
                 global.sharedMemory->attach();
-                global.sharedMemory->write("OPEN_NOTE" + QString::number(startupConfig.startupNoteLid) + " ");
+                global.sharedMemory->write(req);
                 global.sharedMemory->detach();
                 delete a;
                 exit(0);  // Exit this one
             }
 
             // If we've gotten this far, we need to either stop this instance or stop the other
-            QLOG_DEBUG() << "Multiple instance found";
+            // note: although this is configurable, there doesn't seem to be GUI preference for this
             global.settings->beginGroup(INI_GROUP_DEBUGGING);
             QString startup = global.settings->value("onMultipleInstances", "SHOW_OTHER").toString();
+            QLOG_DEBUG() << "Another running instance with same account detected - configured action: " << startup;
             global.settings->endGroup();
             global.sharedMemory->attach();
             if (startup == "SHOW_OTHER") {
+                QLOG_DEBUG() << "Trying to activate it..";
                 global.sharedMemory->write(QString("SHOW_WINDOW"));
                 global.sharedMemory->detach();
                 delete a;
                 return 0;  // Exit this one
             }
             if (startup == "STOP_OTHER") {
+                QLOG_DEBUG() << "Trying to shutdown it..";
                 global.sharedMemory->write(QString("IMMEDIATE_SHUTDOWN"));
                 memInitNeeded = false;
             }
@@ -262,6 +264,20 @@ int main(int argc, char *argv[]) {
         global.sharedMemory->clearMemory();
     }
 
+
+    // activate logging in file
+    QString logPath = global.fileManager.getMainLogFileName();
+    QsLogging::DestinationPtr fileDestination(
+            QsLogging::DestinationFactory::MakeFileDestination(logPath));
+    logger.addDestination(fileDestination.get());
+
+    // from now on logging goes also to log file (up to here only to terminal)
+
+    QLOG_INFO().noquote() << NN_APP_DISPLAY_NAME " " << versionStr << ", build at " << __DATE__ << " at " << __TIME__
+                          << ", with Qt" << QT_VERSION_STR << " running on " << qVersion();
+    if (logger.loggingLevel() > 1) {
+        QLOG_INFO() << "To get more detailed startup logging use --logLevel=1";
+    }
     global.fileManager.setupFileAttachmentLogging();
 
 #ifndef _WIN32

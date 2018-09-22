@@ -1,7 +1,7 @@
 #!/bin/bash
 QT_DIR=${1}
 BUILD_TYPE=${2}
-PROG=nixnote2
+CLEAN=${3}
 
 function error_exit {
     echo "***********error_exit***********"
@@ -25,31 +25,24 @@ if [ ! -f src/main.cpp ]; then
   exit 1
 fi
 
-
-
 if [ -z "${BUILD_TYPE}" ]; then
     BUILD_TYPE=debug
 fi
 BUILD_DIR=qmake-build-${BUILD_TYPE}
+
+if [ ! -z "${CLEAN}" ]; then
+  echo "Clean build: ${BUILD_DIR}"
+  if [ -d "${BUILD_DIR}" ]; then
+    rm -rf ${BUILD_DIR}
+  fi
+fi
+
 if [ ! -d "${BUILD_DIR}" ]; then
   mkdir ${BUILD_DIR}
 fi
 
-
-# maybe later add with "clean" parameter
-#if [ -d "${BUILD_DIR}" ]; then
-#  rm -rf ${BUILD_DIR}
-#fi
-
-VERSION="$(cat version.txt)-$(git rev-parse --short HEAD)"
-# for simplicity now create in both dirs
-echo $VERSION >${BUILD_DIR}/build-version.txt
-# this may not be needed, if we run from "appdir" during development
-echo $VERSION >build-version.txt
-
 echo $QT_DIR >${BUILD_DIR}/qt-dir.txt
 echo "${BUILD_DIR}">_build_dir_.txt
-echo Building version: ${VERSION}
 
 APPDIR=appdir
 if [ -d "${APPDIR}" ]; then
@@ -65,10 +58,6 @@ if [ ! -f "${QMAKE_BINARY}" ]; then
     exit 1
 fi
 
-
 ${QMAKE_BINARY} CONFIG+=${BUILD_TYPE} PREFIX=appdir/usr || error_exit "qmake"
-make || error_exit "make"
-
-# this is a bit hack: we rerun qmake, to generated "install" incl. created binary
-${QMAKE_BINARY} CONFIG+=${BUILD_TYPE} PREFIX=appdir/usr || error_exit "qmake (2nd)"
+make -j8 || error_exit "make"
 make install || error_exit "make install"
