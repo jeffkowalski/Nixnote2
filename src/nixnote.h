@@ -49,10 +49,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "src/gui/ntrashtree.h"
 #include "src/dialog/accountdialog.h"
 #include "src/threads/counterrunner.h"
-//#include "src/oauth/oauthwindow.h"
 #include "src/html/thumbnailer.h"
 #include "src/reminders/remindermanager.h"
-#include "src/plugins/hunspell/hunspellinterface.h"
 
 //****************************************
 //* This is the main NixNote class that
@@ -167,7 +165,6 @@ private:
     QShortcut *rightArrowButtonShortcut;
 
 private:
-    void loadPlugins();
     void setupGui();
     void setupNoteList();
     void setupSearchTree();
@@ -186,6 +183,8 @@ private:
     void trayActivatedAction(int value);
     TrayMenu *createTrayContexMenu();
     void restoreAndShowMainWindow();
+    void configurePdfPrinter(QPrinter &printer, QString &file) const;
+    bool checkAuthAndReauthorize();
 
 public:
     NixNote(QWidget *parent = 0);  // Constructor
@@ -202,7 +201,7 @@ public:
     bool event(QEvent *event);
     LineEdit *searchText;
     NTabWidget *tabWindow;
-    bool hunspellPluginAvailable;
+void showAnnouncementMessage();
 
 private slots:
     void onNetworkManagerFinished(QNetworkReply *reply);
@@ -221,11 +220,15 @@ public slots:
     void rightButtonTriggered();
     void openNote(bool newWindow);
     void noteImport();
-    void noteExport();
-    void databaseRestore(bool fullRestore=true);
-    void databaseBackup(bool backup=true);
+
+    void exportSelectedNotes();
+    void exportNotes(bool exportAllNotes = true);
+
+    void importNotes(bool fullRestore=true);
+
     void resetView();
     void newNote();
+    void restoreAndNewNote();
     void newExternalNote();
     void disableEditing();
     void setSyncTimer();
@@ -280,6 +283,7 @@ public slots:
     void counterThreadStarted();
     void openCloseNotebooks();
     void deleteCurrentNote();
+    bool isOkToDeleteNote(QString msg);
     void duplicateCurrentNote();
     void pinCurrentNote();
     void unpinCurrentNote();
@@ -302,6 +306,7 @@ public slots:
 signals:
     void syncRequested();
     void updateCounts();
+
 
 };
 

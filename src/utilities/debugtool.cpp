@@ -68,8 +68,7 @@ void DebugTool::dumpNote(const Note &note) {
         return;
     }
 
-    QLOG_DEBUG() << "*** Dumping Note ***";
-    dumpField(note.guid, "guid");
+    QLOG_DEBUG() << ">>>>>>>>> note guid=" << note.guid;
     dumpField(note.active, "active");
     dumpField(note.title, "title");
     dumpField(note.content, "content");
@@ -104,16 +103,20 @@ void DebugTool::dumpNote(const Note &note) {
         dumpField(attributes.creatorId, "creatorId");
         dumpField(attributes.lastEditorId, "lastEditorId");
     }
+    dumpNoteResources(note);
 
+    QLOG_DEBUG() << "<<<<<<<<< note guid=" << note.guid;
+}
+
+void DebugTool::dumpNoteResources(const Note &note) {
     if (note.resources.isSet()) {
         QList<Resource> resources = note.resources;
-        QLOG_DEBUG() << resources.size() << " resources found";
-        for (int i = 0; i < resources.size(); i++) {
-            QLOG_DEBUG() << "resource #" << i;
+        int resourceCount = resources.size();
+        for (int i = 0; i < resourceCount; i++) {
+            QLOG_DEBUG() << "resource #" << (i + 1) << "/" << resourceCount;
             dumpResource(resources[i]);
         }
     }
-    QLOG_DEBUG() << "*** Note Dump complete ***";
 }
 
 
@@ -121,28 +124,27 @@ void DebugTool::dumpNote(const Note &note) {
 // Dump a resource to the debug log
 //************************************
 void DebugTool::dumpResource(Resource r) {
-    QLOG_DEBUG() << "*** Dumping Resource ***";
-    dumpField(r.guid, "guid");
-    dumpField(r.noteGuid, "noteGuid");
-    dumpField(r.mime, "mime");
-    dumpField(r.width, "width");
-    dumpField(r.height, "height");
-    dumpField(r.duration, "duration");
-    dumpField(r.active, "active");
-    dumpField(r.updateSequenceNum, "USN");
+    QLOG_DEBUG() << "guid=" << r.guid
+                 << ", noteGuid=" << r.noteGuid
+                 << ", mime=" << r.mime
+                 << ", width=" << r.width
+                 << ", height=" << r.height
+                 << ", duration=" << r.duration
+                 << ", active=" << r.active
+                 << ", updateSequenceNum=" << r.updateSequenceNum;
+
     if (r.data.isSet()) {
-        QLOG_DEBUG() << "resource data found:";
+        QLOG_DEBUG() << "resource data:";
         dumpData(r.data);
-    } else QLOG_DEBUG() << "resource data not found.";
+    }
     if (r.recognition.isSet()) {
-        QLOG_DEBUG() << "resource recognition data found:";
+        QLOG_DEBUG() << "resource recognition data:";
         dumpData(r.data);
-    } else QLOG_DEBUG() << "resource recognition data not found.";
+    }
     if (r.alternateData.isSet()) {
-        QLOG_DEBUG() << "resource alternate data found:";
+        QLOG_DEBUG() << "resource alternate data:";
         dumpData(r.alternateData);
-    } else QLOG_DEBUG() << "resource alternate data not found.";
-    QLOG_DEBUG() << "*** Resource Dump Complete ***";
+    }
 }
 
 
@@ -150,10 +152,8 @@ void DebugTool::dumpResource(Resource r) {
 // Dump a generic data segment to the log
 //******************************************
 void DebugTool::dumpData(Data d) {
-    QLOG_DEBUG() << "*** Dumping Data Field ***";
     dumpField(d.bodyHash, "bodyHash", true);
     dumpField(d.size, "size");
-    QLOG_DEBUG() << "*** Data Field Dump Complete ***";
 }
 
 
@@ -195,7 +195,7 @@ void DebugTool::dumpNotebook(Notebook n) {
 
 //*******************************************************
 //* The remainder of these methods are generic
-//* functions called by the functions above.  They
+//* functions called by the functions above. They
 //* all work pretty much the same.  They just accept a
 //* value and, if it is set, dump the contents to the
 //* debug log.
@@ -265,8 +265,10 @@ void DebugTool::dumpField(Optional<QByteArray> field, QString name, bool hexValu
 
 void DebugTool::dumpField(Optional<QStringList> field, QString name) {
     if (!field.isSet()) {
+        QLOG_DEBUG() << name << " is empty (QStringList)";
         return;
     }
+
     QStringList fields = field;
     QLOG_DEBUG() << name << " has " << fields.size() << " entries.";
     for (int i = 0; i < fields.size(); i++) {
@@ -277,8 +279,10 @@ void DebugTool::dumpField(Optional<QStringList> field, QString name) {
 
 void DebugTool::dumpField(Optional<QList<QString> > field, QString name) {
     if (!field.isSet()) {
+        QLOG_DEBUG() << name << " is empty (QList<QString>)";
         return;
     }
+
     QList<QString> fields = field;
     QLOG_DEBUG() << name << " has " << fields.size() << " entries.";
     for (int i = 0; i < fields.size(); i++) {

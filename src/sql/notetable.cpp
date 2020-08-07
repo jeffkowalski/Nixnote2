@@ -26,6 +26,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "tagtable.h"
 #include "src/global.h"
 #include "src/utilities/noteindexer.h"
+#include "src/utilities/NixnoteStringUtils.h"
 
 #include <QSqlTableModel>
 #include <QtXml>
@@ -142,6 +143,15 @@ qint32 NoteTable::getLid(string guid) {
 }
 
 
+// Given a note's In-App or External URL, we return the LID
+qint32 NoteTable::getLidFromUrl(QString noteUrl) {
+    QString noteGuid = NixnoteStringUtils::extractNoteGuid(noteUrl);
+    QLOG_DEBUG() << QString("getLidFromUrl: found note GUID=%1 from note url=%2").arg(noteGuid).arg(noteUrl);
+    qint32 lid = getLid(noteGuid);
+    QLOG_DEBUG() << QString("getLidFromUrl: found note lid: %1").arg(lid);
+    return lid;
+}
+
 
 // Add a new note to the database
 qint32 NoteTable::add(qint32 l, const Note &t, bool isDirty, qint32 account) {
@@ -154,12 +164,14 @@ qint32 NoteTable::add(qint32 l, const Note &t, bool isDirty, qint32 account) {
     qint32 notebookLid = account;
 
     query.prepare("Insert into DataStore (lid, key, data) values (:lid, :key, :data)");
-    if (lid <= 0)
+    if (lid <= 0) {
         lid = cs.incrementLidCounter();
+    }
 
-    QLOG_DEBUG() << "Adding note("<<lid<<") " << (t.title.isSet() ? t.title : "title is empty");
+    QLOG_DEBUG() << "Adding note; lid=" << lid << ", title=" << (t.title.isSet() ? t.title : "title is empty");
     if (t.guid.isSet()) {
         QString guid = t.guid;
+        QLOG_DEBUG() << "Adding note; guid=" << guid;
         query.bindValue(":lid", lid);
         query.bindValue(":key", NOTE_GUID);
         query.bindValue(":data", guid);
@@ -194,6 +206,11 @@ qint32 NoteTable::add(qint32 l, const Note &t, bool isDirty, qint32 account) {
 #else
         b.append(content);
 #endif
+
+
+        QLOG_DEBUG_FILE("incoming.enml", content);
+
+
         query.bindValue(":data", b);
         query.exec();
     }
@@ -312,12 +329,20 @@ qint32 NoteTable::add(qint32 l, const Note &t, bool isDirty, qint32 account) {
     QList<Resource> resources;
     if (t.resources.isSet())
         resources = t.resources;
-    for (int i=0; i<resources.size(); i++) {
+
+    QLOG_DEBUG() << "Adding resources count=" << resources.size();
+
+    for (int i = 0; i < resources.size(); i++) {
         qint32 resLid;
         resLid = 0;
         Resource r;
         r = resources[i];
-        resLid = resTable.getLid(t.guid,resources[i].guid);
+        QString noteGuid(t.guid);
+        QString resourceGuid(resources[i].guid);
+        resLid = resTable.getLid(noteGuid, resourceGuid);
+        QLOG_DEBUG() << "Adding resource i=" << i << " noteGuid=" << noteGuid << ", resourceGuid=" << resourceGuid;
+
+
         if (resLid == 0)
             resLid = cs.incrementLidCounter();
         resTable.add(resLid, r, isDirty, lid);
@@ -747,7 +772,7 @@ bool NoteTable::updateNotebookName(qint32 lid, QString name) {
 
 
 // Return a note structure given the LID
-bool NoteTable::get(Note &note, qint32 lid,bool loadResources, bool loadBinary) {
+bool NoteTable::get(Note &note, qint32 lid, bool loadResources, bool loadBinary) {
 
     NSqlQuery query(db);
     db->lockForRead();
@@ -763,123 +788,125 @@ bool NoteTable::get(Note &note, qint32 lid,bool loadResources, bool loadBinary) 
     while (query.next()) {
         qint32 key = query.value(0).toInt();
         switch (key) {
-        case (NOTE_GUID):
-            note.guid = query.value(1).toString();
-            break;
-        case (NOTE_UPDATE_SEQUENCE_NUMBER):
-            note.updateSequenceNum = query.value(1).toInt();
-            break;
-        case (NOTE_ACTIVE):
-            note.active = query.value(1).toBool();
-            break;
-        case (NOTE_DELETED_DATE):
-            note.active = query.value(1).toLongLong();
-            break;
-        case (NOTE_ATTRIBUTE_SOURCE_URL):
-            na.sourceURL = query.value(1).toString();
-            note.attributes = na;
-            break;
-        case (NOTE_ATTRIBUTE_SOURCE_APPLICATION):
-            na.sourceApplication = query.value(1).toString();
-            note.attributes = na;
-            break;
-        case (NOTE_CONTENT_LENGTH):
-            note.contentLength = query.value(1).toLongLong();
-            break;
-        case (NOTE_ATTRIBUTE_LONGITUDE):
-            na.longitude = query.value(1).toFloat();
-            note.attributes = na;
-            break;
-        case (NOTE_TITLE):
-            note.title = query.value(1).toString();
-            break;
-        case (NOTE_ATTRIBUTE_SOURCE):
-            na.source = query.value(1).toString();
-            note.attributes = na;
-            break;
-        case (NOTE_ATTRIBUTE_ALTITUDE):
-            na.altitude = query.value(1).toFloat();
-            note.attributes = na;
-            break;
-        case (NOTE_NOTEBOOK_LID): {
-            qint32 notebookLid = query.value(1).toInt();
-            NotebookTable ntable(db);
-            QString notebookGuid;
-            ntable.getGuid(notebookGuid, notebookLid);
-            note.notebookGuid = notebookGuid;
-            break;
-        }
-        case (NOTE_UPDATED_DATE):
-            note.updated = query.value(1).toLongLong();
-            break;
-        case (NOTE_CREATED_DATE):
-            note.created = query.value(1).toLongLong();
-            break;
-        case (NOTE_ATTRIBUTE_SUBJECT_DATE):
-            na.subjectDate = query.value(1).toLongLong();
-            note.attributes = na;
-            break;
-        case (NOTE_ATTRIBUTE_LATITUDE):
-            na.latitude = query.value(1).toFloat();
-            note.attributes = na;
-            break;
-        case (NOTE_CONTENT):
-            note.content = query.value(1).toByteArray().data();
+            case (NOTE_GUID):
+                note.guid = query.value(1).toString();
+                break;
+            case (NOTE_UPDATE_SEQUENCE_NUMBER):
+                note.updateSequenceNum = query.value(1).toInt();
+                break;
+            case (NOTE_ACTIVE):
+                note.active = query.value(1).toBool();
+                break;
+            case (NOTE_DELETED_DATE):
+                note.active = query.value(1).toLongLong();
+                break;
+            case (NOTE_ATTRIBUTE_SOURCE_URL):
+                na.sourceURL = query.value(1).toString();
+                note.attributes = na;
+                break;
+            case (NOTE_ATTRIBUTE_SOURCE_APPLICATION):
+                na.sourceApplication = query.value(1).toString();
+                note.attributes = na;
+                break;
+            case (NOTE_CONTENT_LENGTH):
+                note.contentLength = query.value(1).toLongLong();
+                break;
+            case (NOTE_ATTRIBUTE_LONGITUDE):
+                na.longitude = query.value(1).toFloat();
+                note.attributes = na;
+                break;
+            case (NOTE_TITLE):
+                note.title = query.value(1).toString();
+                break;
+            case (NOTE_ATTRIBUTE_SOURCE):
+                na.source = query.value(1).toString();
+                note.attributes = na;
+                break;
+            case (NOTE_ATTRIBUTE_ALTITUDE):
+                na.altitude = query.value(1).toFloat();
+                note.attributes = na;
+                break;
+            case (NOTE_NOTEBOOK_LID): {
+                qint32 notebookLid = query.value(1).toInt();
+                NotebookTable ntable(db);
+                QString notebookGuid;
+                ntable.getGuid(notebookGuid, notebookLid);
+                note.notebookGuid = notebookGuid;
+                break;
+            }
+            case (NOTE_UPDATED_DATE):
+                note.updated = query.value(1).toLongLong();
+                break;
+            case (NOTE_CREATED_DATE):
+                note.created = query.value(1).toLongLong();
+                break;
+            case (NOTE_ATTRIBUTE_SUBJECT_DATE):
+                na.subjectDate = query.value(1).toLongLong();
+                note.attributes = na;
+                break;
+            case (NOTE_ATTRIBUTE_LATITUDE):
+                na.latitude = query.value(1).toFloat();
+                note.attributes = na;
+                break;
+            case (NOTE_CONTENT):
+                note.content = query.value(1).toByteArray().data();
 
-            // Sometimes Evernote doesn't send the XML tag with UTF8 encoding. This forces it.
-            if (global.forceUTF8 && !note.content->startsWith("<?xml"))
-                note.content = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" + note.content;
-            break;
-        case (NOTE_CONTENT_HASH):
-            note.contentHash = query.value(1).toByteArray();
-            break;
-        case (NOTE_ATTRIBUTE_AUTHOR):
-            na.author = query.value(1).toString();
-            note.attributes = na;
-            break;
-        case (NOTE_ISDIRTY):
-            break;
-        case (NOTE_ATTRIBUTE_SHARE_DATE) :
-            na.shareDate = query.value(1).toLongLong();
-            note.attributes = na;
-            break;
-        case (NOTE_ATTRIBUTE_PLACE_NAME) :
-            na.placeName = query.value(1).toString();
-            note.attributes = na;
-            break;
-        case (NOTE_ATTRIBUTE_CONTENT_CLASS) :
-            na.contentClass = query.value(1).toString();
-            note.attributes = na;
-            break;
-        case (NOTE_ATTRIBUTE_REMINDER_ORDER) :
-            na.reminderOrder = query.value(1).toLongLong();
-            note.attributes = na;
-            break;
-        case (NOTE_ATTRIBUTE_REMINDER_DONE_TIME) :
-            na.reminderDoneTime = query.value(1).toLongLong();
-            note.attributes = na;
-            break;
-        case (NOTE_ATTRIBUTE_REMINDER_TIME) :
-            na.reminderTime = query.value(1).toLongLong();
-            note.attributes = na;
-            break;
-        case (NOTE_TAG_LID) :
-            TagTable tagTable(db);
-            qint32 tagLid = query.value(1).toInt();
-            Tag tag;
-            tagTable.get(tag, tagLid);
-            if (tag.guid.isSet())
-                tagGuids.append(tag.guid);
-            if (tag.name.isSet())
-                tagNames.append(tag.name);
-            break;
+                // Sometimes Evernote doesn't send the XML tag with UTF8 encoding. This forces it.
+                if (global.forceUTF8 && !note.content->startsWith("<?xml"))
+                    note.content = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" + note.content;
+                break;
+            case (NOTE_CONTENT_HASH):
+                note.contentHash = query.value(1).toByteArray();
+                break;
+            case (NOTE_ATTRIBUTE_AUTHOR):
+                na.author = query.value(1).toString();
+                note.attributes = na;
+                break;
+            case (NOTE_ISDIRTY):
+                break;
+            case (NOTE_ATTRIBUTE_SHARE_DATE) :
+                na.shareDate = query.value(1).toLongLong();
+                note.attributes = na;
+                break;
+            case (NOTE_ATTRIBUTE_PLACE_NAME) :
+                na.placeName = query.value(1).toString();
+                note.attributes = na;
+                break;
+            case (NOTE_ATTRIBUTE_CONTENT_CLASS) :
+                na.contentClass = query.value(1).toString();
+                note.attributes = na;
+                break;
+            case (NOTE_ATTRIBUTE_REMINDER_ORDER) :
+                na.reminderOrder = query.value(1).toLongLong();
+                note.attributes = na;
+                break;
+            case (NOTE_ATTRIBUTE_REMINDER_DONE_TIME) :
+                na.reminderDoneTime = query.value(1).toLongLong();
+                note.attributes = na;
+                break;
+            case (NOTE_ATTRIBUTE_REMINDER_TIME) :
+                na.reminderTime = query.value(1).toLongLong();
+                note.attributes = na;
+                break;
+            case (NOTE_TAG_LID) :
+                TagTable tagTable(db);
+                qint32 tagLid = query.value(1).toInt();
+                Tag tag;
+                tagTable.get(tag, tagLid);
+                if (tag.guid.isSet())
+                    tagGuids.append(tag.guid);
+                if (tag.name.isSet())
+                    tagNames.append(tag.name);
+                break;
         }
     }
     query.finish();
-    if (tagGuids.size() > 0) {
-        note.tagGuids = tagGuids;
-        note.tagNames = tagNames;
-    }
+
+    // pass always - https://github.com/d1vanov/quentier/issues/266
+    // if (tagGuids.size() > 0) {
+    note.tagGuids = tagGuids;
+    note.tagNames = tagNames;
+    // }
 
     ResourceTable resTable(db);
     QLOG_TRACE() << "Fetching Resources? " << loadResources << " With binary? " << loadBinary;
@@ -887,13 +914,10 @@ bool NoteTable::get(Note &note, qint32 lid,bool loadResources, bool loadBinary) 
     QList<Resource> resources;
     resTable.getAllResources(resources, lid, loadResources, loadBinary);
     note.resources = resources;
-        QLOG_TRACE() << "Fetched resources";
+    QLOG_TRACE() << "Fetched resources";
 
     db->unlock();
-    if (note.guid.isSet())
-        return true;
-    else
-        return false;
+    return note.guid.isSet();
 }
 
 

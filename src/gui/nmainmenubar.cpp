@@ -59,7 +59,6 @@ void NMainMenuBar::setupFileMenu() {
     emailAction = new QAction(tr("Email Note"), this);
     emailAction->setToolTip(tr("Email a copy of this note"));
     connect(emailAction, SIGNAL(triggered()), parent, SLOT(emailNote()));
-    setupShortcut(emailAction, QString("File_Email"));
     fileMenu->addAction(emailAction);
 
 
@@ -78,25 +77,33 @@ void NMainMenuBar::setupFileMenu() {
     fileMenu->addSeparator();
 
 
-    backupDatabaseAction = new QAction(tr("&Backup Database"), this);
-    backupDatabaseAction->setToolTip(tr("Backup database to a file"));
-    connect(backupDatabaseAction, SIGNAL(triggered()), parent, SLOT(databaseBackup()));
+    backupDatabaseAction = new QAction(tr("&Export all notes"), this);
+    backupDatabaseAction->setToolTip(tr("Export all notes to a NNEX file"));
+    connect(backupDatabaseAction, SIGNAL(triggered()), parent, SLOT(exportNotes()));
     setupShortcut(backupDatabaseAction, QString("File_Backup_Database"));
     fileMenu->addAction(backupDatabaseAction);
 
-    restoreDatabaseAction = new QAction(tr("&Restore Database"), this);
-    restoreDatabaseAction->setToolTip(tr("Restore from a backup"));
-    connect(restoreDatabaseAction, SIGNAL(triggered()), parent, SLOT(databaseRestore()));
+    restoreDatabaseAction = new QAction(tr("&Import all notes"), this);
+    restoreDatabaseAction->setToolTip(tr("Import all notes from a file"));
+    connect(restoreDatabaseAction, SIGNAL(triggered()), parent, SLOT(importNotes()));
     setupShortcut(restoreDatabaseAction, QString("File_Restore_Database"));
     fileMenu->addAction(restoreDatabaseAction);
 
     fileMenu->addSeparator();
 
-    exportNoteAction = new QAction(tr("&Export to NixNote Export"), this);
+    exportNoteAction = new QAction(tr("Export &selected notes"), this);
     exportNoteAction->setToolTip(tr("Export selected notes to a NNEX file"));
-    connect(exportNoteAction, SIGNAL(triggered()), parent, SLOT(noteExport()));
+    connect(exportNoteAction, SIGNAL(triggered()), parent, SLOT(exportSelectedNotes()));
     setupShortcut(exportNoteAction, QString("File_Note_Export"));
     fileMenu->addAction(exportNoteAction);
+
+    importNoteAction = new QAction(tr("&Import notes"), this);
+    importNoteAction->setToolTip(tr("Import notes from an export file"));
+    connect(importNoteAction, SIGNAL(triggered()), parent, SLOT(noteImport()));
+    setupShortcut(importNoteAction, QString("File_Note_Import"));
+    fileMenu->addAction(importNoteAction);
+
+    fileMenu->addSeparator();
 
     exportAsPdfAction = new QAction(tr("&Export notes as PDF"), this);
     exportAsPdfAction->setToolTip(tr("Export selected notes to a PDF file"));
@@ -104,11 +111,6 @@ void NMainMenuBar::setupFileMenu() {
     setupShortcut(exportAsPdfAction, QString("File_Note_Export_Pdf"));
     fileMenu->addAction(exportAsPdfAction);
 
-    importNoteAction = new QAction(tr("&Import notes"), this);
-    importNoteAction->setToolTip(tr("Import notes from an export file"));
-    connect(importNoteAction, SIGNAL(triggered()), parent, SLOT(noteImport()));
-    setupShortcut(importNoteAction, QString("File_Note_Import"));
-    fileMenu->addAction(importNoteAction);
 
     fileMenu->addSeparator();
     QList<QString> names = global.accountsManager->nameList();
@@ -156,14 +158,22 @@ void NMainMenuBar::setupFileMenu() {
     quitAction->setToolTip(tr("Quit the program"));
     connect(quitAction, SIGNAL(triggered()), parent, SLOT(quitNixNote()));
 
-    quitAction->setShortcut(QKeySequence::Close);
+    //quitAction->setShortcut(QKeySequence::Close);
     quitAction->setIcon(QIcon::fromTheme("exit"));
     setupShortcut(quitAction, QString("File_Exit"));
     fileMenu->addAction(quitAction);
 
+    // a bit hack, to add 2 keyboard shortcuts to quit the app
+    // https://stackoverflow.com/questions/27074722/qt-adding-non-menubar-keyboard-shortcut-to-qmainwindow
+    QAction *quitAction2 = new QAction(tr("Quit2"), this);
+    setupShortcut(quitAction2, QString("File_Exit2"));
+    connect(quitAction2, SIGNAL(triggered()), parent, SLOT(quitNixNote()));
+    parent->addAction(quitAction2);
+
     QString menuCss = global.getThemeCss("menuCss");
-    if (menuCss != "")
+    if (menuCss != "") {
         this->setStyleSheet(menuCss);
+    }
 }
 
 
@@ -409,14 +419,10 @@ void NMainMenuBar::setupNoteMenu() {
     noteMenu->addAction(reindexNoteAction);
     connect(reindexNoteAction, SIGNAL(triggered()), parent, SLOT(reindexCurrentNote()));
 
-    if (parent->hunspellPluginAvailable) {
-        noteMenu->addSeparator();
-        spellCheckAction = new QAction(tr("&Spell Check"), noteMenu);
-        // setupShortcut(spellCheckAction, QString("Tools_Spell_Check"));  This shortcut is done by the editor button bar
-        noteMenu->addAction(spellCheckAction);
-        connect(spellCheckAction, SIGNAL(triggered()), parent, SLOT(spellCheckCurrentNote()));
-    }
-
+    noteMenu->addSeparator();
+    spellCheckAction = new QAction(tr("&Spell Check"), noteMenu);
+    noteMenu->addAction(spellCheckAction);
+    connect(spellCheckAction, SIGNAL(triggered()), parent, SLOT(spellCheckCurrentNote()));
 
     noteMenu->addSeparator();
 
@@ -563,8 +569,9 @@ void NMainMenuBar::setupHelpMenu() {
 }
 
 void NMainMenuBar::setupShortcut(QAction *action, QString text) {
-    if (!global.shortcutKeys->containsAction(&text))
+    if (!global.shortcutKeys->containsAction(&text)) {
         return;
+    }
     QKeySequence key(global.shortcutKeys->getShortcut(&text));
     action->setShortcut(key);
 }
@@ -603,9 +610,12 @@ void NMainMenuBar::createSortMenu(QMenu *parentMenu) {
     addSortAction(sortMenu, menuActionGroup, f, tr("Title [desc]"), "title desc");
     addSortAction(sortMenu, menuActionGroup, f, tr("Title [asc]"), "title asc");
 
+    addSortAction(sortMenu, menuActionGroup, f, tr("Tags [asc]"), "tags asc");
+
     addSortAction(sortMenu, menuActionGroup, f, tr("Size [desc]"), "size desc, dateUpdated desc");
     addSortAction(sortMenu, menuActionGroup, f, tr("Has todo [desc]"), "hasTodo desc, dateUpdated desc");
     addSortAction(sortMenu, menuActionGroup, f, tr("Unsynced first"), "isDirty desc, dateUpdated desc");
+    addSortAction(sortMenu, menuActionGroup, f, tr("Encrypted first"), "hasEncryption desc, dateUpdated desc");
 
     sortMenu->setFont(f);
 }

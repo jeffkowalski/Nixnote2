@@ -35,7 +35,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <string>
 #include <stdio.h>
 
-#include "src/qevercloud/include/QEverCloud.h"
+#include "src/qevercloud/QEverCloud/headers/QEverCloud.h"
 using namespace qevercloud;
 
 class SyncRunner : public QObject
@@ -43,7 +43,12 @@ class SyncRunner : public QObject
     Q_OBJECT
 private:
     bool idle;
-    bool init;
+    bool initialized;
+    bool updateUserDataOnNextSync;
+public:
+    void setUpdateUserDataOnNextSync(bool updateUserDataOnNextSync);
+
+private:
     int defaultMsgTimeout;
     long evernoteUpdateCount;
     DatabaseConnection *db;
@@ -72,6 +77,7 @@ private:
     QHash<QString, QString> changedTags;
 
     void evernoteSync();
+    void requestAndStoreUserData();
     bool syncRemoteToLocal(qint32 highSequence);
     void syncRemoteExpungedNotes(QList<Guid> guids);
     void syncRemoteExpungedNotebooks(QList<Guid> guids);

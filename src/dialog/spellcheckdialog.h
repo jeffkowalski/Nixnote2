@@ -41,25 +41,15 @@ private:
     QPushButton     *ignoreAll;
     QPushButton     *addToDictionary;
     QListWidget     *suggestions;
-    void            loadLanguages();
+    void            loadLanguages(QString selectedLocale, QStringList availableSpellLocales);
 
 
 public:
-    explicit SpellCheckDialog(QString misspelled, QStringList suggestions, QWidget *parent = 0);
+    explicit        SpellCheckDialog(QString selectedLocale, QStringList availableSpellLocales, QWidget *parent = 0);
     QComboBox       *language;
-    bool            replacePressed;
-    bool            cancelPressed;
-    bool            ignorePressed;
-    bool            ignoreAllPressed;
-    bool            addToDictionaryPressed;
-    bool            changeLanguage;
-    QString         replacement;
+    void            setState(QString misspelled, QStringList suggestions);
+    QString         getReplacement();
 
-protected:
-   //void closeEvent(QCloseEvent *e);
-
-signals:
-    
 public slots:
     void validateInput();
     void replacementChosen();
@@ -69,6 +59,21 @@ public slots:
     void addToDictionaryButtonPressed();
     void cancelButtonPressed();
     void languageChangeRequested(int);
+    void modalityButtonPressed();
 };
+
+
+// 0
+#define DONE_CANCEL QDialog::Rejected
+// 1
+#define DONE_IGNORE QDialog::Accepted
+
+#define DONE_REPLACE             2
+#define DONE_IGNOREALL           3
+#define DONE_CHANGELANGUAGE      4
+#define DONE_ADDTODICTIONARY     5
+
+// dialog name for logs
+#define SPELLCHECKER_DLG "spellcheck dialog"
 
 #endif // SPELLCHECKDIALOG_H

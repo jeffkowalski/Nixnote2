@@ -79,23 +79,12 @@ NWebView::NWebView(NBrowserWindow *parent) :
     contextMenu->addAction(pasteWithoutFormatAction);
     connect(pasteWithoutFormatAction, SIGNAL(triggered()), parent, SLOT(pasteWithoutFormatButtonPressed()));
 
-    copyNoteUrlAction = new QAction(tr("Copy Note URL"), this);
-    global.setupShortcut(copyNoteUrlAction, "Edit_Copy_Note_Url");
-    contextMenu->addAction(copyNoteUrlAction);
-    connect(copyNoteUrlAction, SIGNAL(triggered()), parent, SLOT(copyNoteUrl()));
+    copyInAppNoteLinkAction = new QAction(tr("Copy In-App Note Link"), this);
+    global.setupShortcut(copyInAppNoteLinkAction, "Edit_Copy_Note_Url");
+    contextMenu->addAction(copyInAppNoteLinkAction);
+    connect(copyInAppNoteLinkAction, SIGNAL(triggered()), parent, SLOT(copyInAppNoteLink()));
 
     contextMenu->addSeparator();
-
-    // removeFormattingAction = new QAction(tr("Remove formatting (light)"), this);
-    // global.setupShortcut(removeFormattingAction, "Edit_Remove_Formatting");
-    // contextMenu->addAction(removeFormattingAction);
-    // connect(removeFormattingAction, SIGNAL(triggered()), parent, SLOT(removeFormatButtonPressed()));
-
-    htmlTidyAction = new QAction(tr("Tidy HTML"), this);
-    global.setupShortcut(htmlTidyAction, "Edit_HTML_Tidy");
-    // internal => DISABLED for now
-    //contextMenu->addAction(htmlTidyAction);
-    connect(htmlTidyAction, SIGNAL(triggered()), parent, SLOT(htmlTidy()));
 
     htmlSimplifyAction = new QAction(tr("Simplify formatting"), this);
     global.setupShortcut(htmlSimplifyAction, "Edit_HTML_Simplify");
@@ -147,7 +136,7 @@ NWebView::NWebView(NBrowserWindow *parent) :
 
     contextMenu->addSeparator();
 
-    encryptAction = new QAction(tr("Encrypted Selected Text"), this);
+    encryptAction = new QAction(tr("Encrypt Selected Text"), this);
     contextMenu->addAction(encryptAction);
     global.setupShortcut(encryptAction, "Edit_Encrypt_Text");
     connect(encryptAction, SIGNAL(triggered()), parent, SLOT(encryptButtonPressed()));
@@ -415,7 +404,7 @@ bool NWebView::event(QEvent *event)
 
     }
     if (event->type() == QEvent::MouseButtonDblClick) {
-        QLOG_DEBUG() << "DOUBLE CLICK!!!";
+        QLOG_DEBUG() << "NWebView::event: DOUBLE CLICK!!!";
     }
     return QWebView::event(event);
 }

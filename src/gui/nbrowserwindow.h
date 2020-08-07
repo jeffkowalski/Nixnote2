@@ -40,7 +40,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #include "src/gui/nwebview.h"
 
-#include "src/qevercloud/include/QEverCloud.h"
+#include "src/qevercloud/QEverCloud/headers/QEverCloud.h"
 #include "src/gui/browserWidgets/ntitleeditor.h"
 #include "src/gui/browserWidgets/notebookmenubutton.h"
 #include "src/gui/plugins/pluginfactory.h"
@@ -58,8 +58,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "src/gui/browserWidgets/reminderbutton.h"
 #include "src/html/thumbnailer.h"
 #include "src/email/mimemessage.h"
-#include "src/plugins/hunspell/hunspellinterface.h"
-#include "src/plugins/hunspell/hunspellplugin.h"
+#include "src/hunspell/spellchecker.h"
 #include "src/gui/findreplace.h"
 #include "src/threads/browserrunner.h"
 #include "src/html/enmlformatter.h"
@@ -88,7 +87,7 @@ private:
     bool insideEncryption;
     bool insidePre;
     bool forceTextPaste;
-    void editLatex(QString guid);
+    void editLatex(QString incomingLid);
     QString selectedFileName;
     qint32 selectedFileLid;
     void rotateImage(qreal degrees);
@@ -102,10 +101,15 @@ private:
     QTimer saveTimer;
     QString attachFilePath;  // Save path of last selected attachment.
 
-    // Global plugins
-    bool hunspellPluginAvailable;
-    HunspellInterface *hunspellInterface;
-    void loadPlugins();
+    // object of interface
+    SpellChecker *spellChecker;
+
+    void createSpellChecker();
+    bool initializeSpellCheckerWithLocale(QString local);
+    QString initializeSpellCheckerInitial();
+    QString getSpellCheckerLocaleFromSettings();
+    void saveSpellCheckerLocaleToSettings(QString locale);
+    void spellCheckAddWordToUserDictionary(QString currentWord);
 
 
     // Shortcuts for context menu
@@ -330,7 +334,7 @@ public slots:
     void fontFocusShortcut();
     void fontSizeFocusShortcut();
     void urlFocusShortcut();
-    void copyNoteUrl();
+    void copyInAppNoteLink();
     void findShortcut();
     void findReplaceShortcut();
     void findNextShortcut();
@@ -341,7 +345,6 @@ public slots:
     void findReplaceWindowHidden();
     void findReplaceInNotePressed();
 
-    void htmlTidy();
     void htmlSimplify();
 
 
@@ -362,5 +365,6 @@ private slots:
     void repositionAfterSourceEdit(bool);
 
 };
+
 
 #endif // NBROWSERWINDOW_H

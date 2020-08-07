@@ -28,13 +28,12 @@ File_Save_Content             Ctrl+S            // Force an immediate save of al
 File_Print                    Ctrl+P            // Print
 File_Selective_Sync                             // Selective sync setup
 File_Empty_Trash                                // Purge all deleted notes
-File_Exit                     Ctrl+Q            // I'm outahere
+File_Exit                     Ctrl+Q            // Quit (will terminate app)
+File_Exit2                    Alt+Q             // Quit - alternative shortcut
 File_Note_Export_Pdf                            // Export selected notes as a PDF
 File_Email                    Ctrl+Alt+E        // Email
 File_History_Previous         Alt+Left          // Go back in history
 File_History_Next             Alt+Right         // Go forward in history
-
-
 
 Edit_Search_Find              Ctrl+F            // Search only within the current note
 Edit_Search_Find_Next         Ctrl+G            // Find the next occurrence within the current note
@@ -57,7 +56,7 @@ Edit_Delete_Table_Column                        // Delete a table row
 Edit_HTML_Simplify            Ctrl+Space        // Simplify formatting
 
 Edit_Insert_Hyperlink         Ctrl+K            // Insert a hyperlink (Popup menu)
-Edit_Insert_Todo                                // Insert a todo checkbox (Popup menu)
+Edit_Insert_Todo              Ctrl+Shift+C      // Insert a todo checkbox (Popup menu)
 Edit_Insert_QuickLink                           // Insert a quick link to another note (Popup menu)
 Edit_Remove_Hyperlink                           // Remove hyperlink from text
 Edit_Insert_Html_Entities                       // Insert HTML Entities
@@ -65,7 +64,7 @@ Edit_Encrypt_Text                               // Encrypt selected text (Popup 
 Edit_Insert_Table                               // Insert a table into a note (Popup menu)
 Edit_Attach_File                                // Attach a file
 Edit_Insert_Latex                               // Insert a LaTeX formula.
-Edit_Copy_Note_Url                              // Copy the current note URL to the clipboard
+Edit_Copy_Note_Url            Ctrl+Shift+K      // Copy the current note URL to the clipboard
 
 View_List_Narrow                                // View with the list on the side
 View_List_Wide                                  // View with the list on the top
@@ -115,7 +114,7 @@ Format_List_Numbered          Ctrl+Shift+N      // Numbered list
 Format_Indent_Increase        Ctrl+M            // Increase the indentation // seems Tab doesn't work
 Format_Indent_Decrease        Ctrl+Shift+M      // Decrease the indent      // seems Shift-Tab doesn't work
 Format_Highlight              Ctrl+Shift+H      // Highlight the current text (background color)
-Format_Code_Block                               // Format code block
+Format_Code_Block             Ctrl+Shift+L      // Format code block
 Format_Font_Color             Ctrl+D            // Set font color
 
 Tools_Synchronize             F9                // Synchronize with Evernote

@@ -20,6 +20,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #include "crossmemorymapper.h"
 #include <iostream>
+#include "src/logger/qslog.h"
 
 CrossMemoryMapper::CrossMemoryMapper(QObject *parent) :
     QObject(parent) {
@@ -45,14 +46,21 @@ CrossMemoryMapper::~CrossMemoryMapper() {
         sharedMemory->detach();
 }
 
-bool CrossMemoryMapper::allocate(int size) {
-    if (key == "")
-        return false;
+QSharedMemory::SharedMemoryError CrossMemoryMapper::allocate(int size) {
+    QLOG_DEBUG() << "Shared memory segment is about to be allocaed; size=" << size;
+    if (key == "") {
+        QLOG_ERROR() << "Shared memory segment can't be created: no key!";
+        return QSharedMemory::SharedMemoryError::UnknownError;
+    }
     if (!sharedMemory->create(size, QSharedMemory::ReadWrite)) {
-        return false;
+        QSharedMemory::SharedMemoryError error = sharedMemory->error();
+        QLOG_WARN() << "Shared memory segment failed to allocate, instance key=" << key << "; error=" << error
+            << ", " << sharedMemory->errorString();
+        return error;
     }
     buffer = (char *) malloc(static_cast<size_t>(getSharedMemorySize()));
-    return true;
+    QLOG_INFO() << "Shared memory segment allocated, instance key: " << key;
+    return QSharedMemory::SharedMemoryError::NoError;
 }
 
 
@@ -78,19 +86,28 @@ bool CrossMemoryMapper::unlock() {
 
 
 bool CrossMemoryMapper::attach() {
-    if (key == "")
+    if (key == "") {
+        QLOG_ERROR() << "Shared memory segment can't be attached: no key!";
         return false;
-    if (sharedMemory == nullptr)
+    }
+    if (sharedMemory == nullptr) {
+        QLOG_ERROR() << "Shared memory segment can't be attached: nullptr!";
         return false;
-    if (buffer == nullptr)
+    }
+    if (buffer == nullptr) {
         buffer = (char *) malloc(getSharedMemorySize());
-    return sharedMemory->attach();
+    }
+    bool ret = sharedMemory->attach();
+    QLOG_DEBUG() << "Shared memory segment attach, instance key: " << key << ", result: " << ret;
+    return ret;
 }
 
 
 bool CrossMemoryMapper::detach() {
     sharedMemory->unlock();
-    return sharedMemory->detach();
+    bool ret = sharedMemory->detach();
+    QLOG_DEBUG() << "Shared memory segment detach, instance key: " << key << ", result: " << ret;
+    return ret;
 }
 
 
@@ -132,4 +149,8 @@ bool CrossMemoryMapper::isAttached() {
     if (sharedMemory == nullptr)
         return false;
     return sharedMemory->isAttached();
+}
+
+const QString &CrossMemoryMapper::getKey() const {
+    return key;
 }

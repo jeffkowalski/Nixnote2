@@ -34,25 +34,26 @@ LocalePreferences::LocalePreferences(QWidget *parent) :
     QDate date = QDate::currentDate();
     QTime time = QTime::currentTime();
 
-    translationLabel = new QLabel("Language *");
+    translationLabel = new QLabel(tr("Language *"));
     translationLabel->setAlignment(Qt::AlignRight | Qt::AlignCenter);
     translationCombo = new QComboBox(this);
     translationCombo->addItem(tr("<System Default>"), QLocale::system().name());
     translationCombo->addItem(tr("Catalan"), "ca");
     translationCombo->addItem(tr("Czech"), "cs_CZ");
+    translationCombo->addItem(tr("Chinese"), "zh_CN");
+    translationCombo->addItem(tr("Chinese (Taiwan)"), "zh_TW");
     translationCombo->addItem(tr("Danish"), "da");
     translationCombo->addItem(tr("German"), "de");
     translationCombo->addItem(tr("English (US)"), "en_US");
     translationCombo->addItem(tr("English (UK)"), "en_GB");
-    translationCombo->addItem(tr("Spanish"), "es");
     translationCombo->addItem(tr("French"), "fr");
     translationCombo->addItem(tr("Japanese"), "ja");
+    translationCombo->addItem(tr("Italian"), "it");
     translationCombo->addItem(tr("Polish"), "pl");
-    translationCombo->addItem(tr("Portugese"), "pt");
+    translationCombo->addItem(tr("Portuguese"), "pt");
     translationCombo->addItem(tr("Russian"), "ru");
     translationCombo->addItem(tr("Slovak"), "sk");
-    translationCombo->addItem(tr("Chinese"), "zh_CN");
-    translationCombo->addItem(tr("Chinese (Taiwan)"), "zh_TW");
+    translationCombo->addItem(tr("Spanish"), "es");
     QLabel *restartLabel = new QLabel(tr("*Note: Restart required"),this);
 
 
@@ -84,7 +85,7 @@ LocalePreferences::LocalePreferences(QWidget *parent) :
     mainLayout->addWidget(restartLabel,3,0);
 
     global.settings->beginGroup(INI_GROUP_LOCALE);
-    QString translationi = global.settings->value("translation", "").toString();
+    QString translationi = global.settings->value(INI_VALUE_TRANSLATION, "").toString();
     int datei = global.settings->value("dateFormat", 1).toInt();
     int timei = global.settings->value("timeFormat", 1).toInt();
     global.settings->endGroup();
@@ -112,7 +113,7 @@ void LocalePreferences::saveValues() {
     QString translation = getTranslation();
 
     global.settings->beginGroup(INI_GROUP_LOCALE);
-    global.settings->setValue("translation", translation);
+    global.settings->setValue(INI_VALUE_TRANSLATION, translation);
     global.settings->setValue("dateFormat", dateFormat);
     global.settings->setValue("timeFormat", timeFormat);
     global.settings->endGroup();

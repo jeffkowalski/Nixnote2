@@ -72,6 +72,7 @@ private:
     QString translateDirPath;
     QDir translateDir;
 
+private:
     QsLogging::DestinationPtr fileLoggingDestination;
 
     QString toPlatformPathSeparator(QString relativePath) const;
@@ -80,6 +81,7 @@ private:
     void checkExistingWriteableDir(QDir dir);
     void createDirOrCheckWriteable(QDir dir);
     QString fixStandardPath(QString &path) const;
+    QString getDefaultProgramDirPath();
 
 public:
     FileManager();
@@ -100,8 +102,6 @@ public:
     QString getSpellDirPathUser();
     QString getDbDirPath(QString relativePath);
     QString getDbaDirPath();
-    QString getDbaDirPath(QString relativePath);
-    QString getDbaDirPathSpecialChar(QString relativePath);
     QString getDbiDirPath();
     QString getDbiDirPath(QString relativePath);
     QString getDbiDirPathSpecialChar(QString relativePath);
@@ -112,6 +112,9 @@ public:
     QString getImageDirPath(QString relativePath);
     QDir getJavaDirFile(QString relativePath);
     QString getJavaDirPath(QString relativePath);
+
+    QString getCryptoJarPath() { return this->getJavaDirPath("") + QStringLiteral("crypto.jar"); }
+
     QDir getLogsDirFile(QString relativePath);
     QString getLogsDirPath(QString relativePath) const;
     //    QString getQssDirPath(QString relativePath);
@@ -126,7 +129,7 @@ public:
     void setupFileAttachmentLogging();
     void deleteTopLevelFiles(QDir dir, bool exitOnFail);
     QString getMainLogFileName() const { return this->getLogsDirPath("") + "messages.log"; }
-
+    QString getLibraryDirPath();
 };
 
 #endif // FILEMANAGER_H

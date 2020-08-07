@@ -38,10 +38,12 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 extern Global global;
 
 SyncRunner::SyncRunner() {
-    init = false;
+    initialized = false;
     finalSync = false;
     apiRateLimitExceeded = false;
     minutesToNextSync = 0;
+    error = false;
+    updateUserDataOnNextSync = false;
 }
 
 SyncRunner::~SyncRunner() {
@@ -49,10 +51,11 @@ SyncRunner::~SyncRunner() {
 
 
 void SyncRunner::synchronize() {
-    QLOG_DEBUG() << "Starting SyncRunner.synchronize()";
-    if (!init) {
+    QLOG_DEBUG() << "synchronize";
+
+    if (!initialized) {
         this->setObjectName("SyncRunnerThread");
-        init = true;
+        initialized = true;
         consumerKey = "";
         secret = "";
         apiRateLimitExceeded = false;
@@ -66,13 +69,14 @@ void SyncRunner::synchronize() {
         defaultMsgTimeout = 150000;
         db = new DatabaseConnection("syncrunner");
         comm = new CommunicationManager(db);
-        if (global.guiAvailable)
+        if (global.guiAvailable) {
             connect(global.application, SIGNAL(stdException(QString)), this, SLOT(applicationException(QString)));
+        }
     }
-
 
     // If we are already connected, we are already synchronizing so there is nothing more to do
     if (global.connected) {
+        QLOG_DEBUG() << "synchronize: sync seems to be already running (or stuck someway)";
         return;
     }
 
@@ -80,11 +84,14 @@ void SyncRunner::synchronize() {
     comm->resetError();
 
     if (!comm->enConnect()) {
+        QLOG_DEBUG() << "synchronize: connect failed";
+
         this->communicationErrorHandler();
         error = true;
         emit syncComplete();
         return;
     }
+    QLOG_DEBUG() << "synchronize: connect OK";
 
     global.connected = true;
     keepRunning = true;
@@ -94,21 +101,26 @@ void SyncRunner::synchronize() {
     global.connected = false;
 }
 
-
-void SyncRunner::evernoteSync() {
-    QLOG_TRACE() << "Sync thread:" << QThread::currentThreadId();
-    if (!global.connected) {
-        return;
-    }
-
-    User user;
+void SyncRunner::requestAndStoreUserData() {
     UserTable userTable(db);
-    if (!comm->getUserInfo(user)) {
+    QLOG_INFO() << "Requesting user data UserStore.getInfo";
+    User user;
+    if (!comm->getUserInfo(user)) { // get user info BEFORE SYNC
         this->communicationErrorHandler();
         error = true;
         return;
     }
-    userTable.updateUser(user);
+    QLOG_INFO() << "About to store user data";
+    userTable.updateUser(user); // update user info in DB
+    QLOG_INFO() << "User data updated";
+}
+
+void SyncRunner::evernoteSync() {
+    QLOG_TRACE() << "Sync thread:" << QThread::currentThreadId();
+    if (!global.connected) {
+        QLOG_DEBUG() << "synchronize: not connected";
+        return;
+    }
 
     SyncState syncState;
     if (!comm->getSyncState("", syncState)) {
@@ -119,6 +131,7 @@ void SyncRunner::evernoteSync() {
 
     fullSync = false;
 
+    UserTable userTable(db);
     qlonglong lastSyncDate = userTable.getLastSyncDate();
     updateSequenceNumber = userTable.getLastSyncNumber();
 
@@ -131,6 +144,14 @@ void SyncRunner::evernoteSync() {
     if (updateSequenceNumber == 0) {
         fullSync = true;
     }
+
+    // EXPERIMENTAL disable UserStore.getUser() for incremental sync
+    if (fullSync || updateUserDataOnNextSync) {
+        this->requestAndStoreUserData();
+        updateUserDataOnNextSync = false;
+    }
+
+
 
     emit setMessage(tr("Beginning sync"), defaultMsgTimeout);
 
@@ -146,13 +167,6 @@ void SyncRunner::evernoteSync() {
             error = true;
         }
     }
-
-    if (!comm->getUserInfo(user)) {
-        this->communicationErrorHandler();
-        error = true;
-        return;
-    }
-    userTable.updateUser(user);
 
     if (!global.disableUploads && !error) {
         qint32 searchUsn = uploadSavedSearches();
@@ -1176,9 +1190,11 @@ qint32 SyncRunner::uploadPersonalNotes() {
         usn = comm->uploadNote(note);
         if (usn == 0) {
             this->communicationErrorHandler();
-            if (note.title.isSet())
+            if (note.title.isSet()) {
                 QLOG_ERROR() << tr("Error uploading note:") + note.title;
-            else QLOG_ERROR() << tr("Error uploading note with a missing title!");
+            } else {
+                QLOG_ERROR() << tr("Error uploading note with a missing title!");
+            }
             error = true;
             //return maxUsn;
         }
@@ -1219,5 +1235,10 @@ void SyncRunner::communicationErrorHandler() {
     }
     // should be already displayed by "error" itself
     //emit(setMessage(comm->error.getMessage(), 0));
+}
+
+void SyncRunner::setUpdateUserDataOnNextSync(bool updateUserDataOnNextSync) {
+    QLOG_INFO() << "Setting updateUserDataOnNextSync to " << updateUserDataOnNextSync;
+    SyncRunner::updateUserDataOnNextSync = updateUserDataOnNextSync;
 }
 

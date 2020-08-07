@@ -46,8 +46,13 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #include "src/application.h"
 
+#ifdef Q_OS_MACOS
 #include <tidy.h>
 #include <tidybuffio.h>
+#else
+#include <tidy/tidy.h>
+#include <tidy/tidybuffio.h>
+#endif
 
 
 NixNote *w;
@@ -110,8 +115,7 @@ int main(int argc, char *argv[]) {
     // at very beginning we starting with info level to get basic startup info
     // log level is later adjusted by settings
 
-    // FOR ALFA VERSION TEMPORARY DEFAULT LOG LEVEL IS DEBUG
-    logger.setLoggingLevel(QsLogging::DebugLevel);
+    logger.setLoggingLevel(QsLogging::InfoLevel);
 
     QsLogging::DestinationPtr debugDestination(
         QsLogging::DestinationFactory::MakeDebugOutputDestination());
@@ -151,7 +155,6 @@ int main(int argc, char *argv[]) {
 
     global.fileManager.setup(startupConfig.getConfigDir(), startupConfig.getUserDataDir(),
                              startupConfig.getProgramDataDir());
-    QString versionStr = global.fileManager.getProgramVersionPrintable();
 
     // first configure global settings file
     global.initializeGlobalSettings();
@@ -190,14 +193,15 @@ int main(int argc, char *argv[]) {
 
 
     // If we want something other than the GUI, try let the CmdLineTool deal with it.
+    CrossMemoryMapper *sharedMemory = global.sharedMemory;
     if (!startupConfig.gui()) {
         QLOG_INFO() << "About to handle command line arguments";
         global.purgeTemporaryFilesOnShutdown = startupConfig.purgeTemporaryFiles;
         CmdLineTool cmdline;
         startupConfig.purgeTemporaryFiles = false;
         int retval1 = cmdline.run(startupConfig);
-        if (global.sharedMemory->isAttached()) {
-            global.sharedMemory->detach();
+        if (sharedMemory->isAttached()) {
+            sharedMemory->detach();
         }
         if (retval1) {
             QLOG_ERROR() << "Exit FAILURE: retcode=" << retval1;
@@ -214,26 +218,44 @@ int main(int argc, char *argv[]) {
     // with any other instance that may be running.  If another instance
     // is found we need to either show that one or kill this one.
     bool memInitNeeded = true;
-    if (!global.sharedMemory->allocate(512 * 1024)) {
+    int sharedMemSize = 512 * 1024;
+    QSharedMemory::SharedMemoryError allocateRecCode1 = sharedMemory->allocate(sharedMemSize);
+    if (allocateRecCode1 != QSharedMemory::SharedMemoryError::NoError) {
+        // failed to create new memory segment (#1)
+        QLOG_INFO() << "New shared memory segment could not be created; code=" << allocateRecCode1;
+
         // Attach to it and detach.  This is done in case it crashed.
-        global.sharedMemory->attach();
-        global.sharedMemory->detach();
-        if (!global.sharedMemory->allocate(512 * 1024)) {
-            QLOG_DEBUG() << "Shared memory segment created";
+        sharedMemory->attach();
+        sharedMemory->detach();
+
+        QSharedMemory::SharedMemoryError allocateRetCode = sharedMemory->allocate(sharedMemSize);
+        if (allocateRetCode != QSharedMemory::SharedMemoryError::NoError) {
+            // failed to create new memory segment (#2)
+            QLOG_WARN() << "New shared memory segment could not be created; code=" << allocateRetCode;
+            if (allocateRetCode != QSharedMemory::SharedMemoryError::AlreadyExists) {
+                QLOG_ERROR() << "Fatal error.. exit";
+                exit(1);
+            }
+
+
+
+            QLOG_INFO() << "Another instance with the same configuration seems to be running running, instance key:"
+                        << sharedMemory->getKey();
+
             if (startupConfig.startupNewNote) {
                 QLOG_DEBUG() << "Sending request NEW_NOTE";
-                global.sharedMemory->attach();
-                global.sharedMemory->write(QString("NEW_NOTE"));
-                global.sharedMemory->detach();
+                sharedMemory->attach();
+                sharedMemory->write(QString("NEW_NOTE"));
+                sharedMemory->detach();
                 delete a;
                 exit(0);  // Exit this one
             }
             if (startupConfig.startupNoteLid > 0) {
                 QString req("OPEN_NOTE" + QString::number(startupConfig.startupNoteLid) + " ");
                 QLOG_DEBUG() << "Sending request " << req;
-                global.sharedMemory->attach();
-                global.sharedMemory->write(req);
-                global.sharedMemory->detach();
+                sharedMemory->attach();
+                sharedMemory->write(req);
+                sharedMemory->detach();
                 delete a;
                 exit(0);  // Exit this one
             }
@@ -242,28 +264,33 @@ int main(int argc, char *argv[]) {
             // note: although this is configurable, there doesn't seem to be GUI preference for this
             global.settings->beginGroup(INI_GROUP_DEBUGGING);
             QString startup = global.settings->value("onMultipleInstances", "SHOW_OTHER").toString();
-            QLOG_DEBUG() << "Another running instance with same account detected - configured action: " << startup;
             global.settings->endGroup();
-            global.sharedMemory->attach();
+
+            QLOG_INFO() << "Another running instance with same account detected - configured action: " << startup
+                        << " instance key:" << sharedMemory->getKey();;
+
+            sharedMemory->attach();
             if (startup == "SHOW_OTHER") {
-                QLOG_DEBUG() << "Trying to activate it..";
-                global.sharedMemory->write(QString("SHOW_WINDOW"));
-                global.sharedMemory->detach();
+                QLOG_INFO() << "Trying to activate it..";
+                sharedMemory->write(QString("SHOW_WINDOW"));
+                sharedMemory->detach();
                 delete a;
                 return 0;  // Exit this one
             }
             if (startup == "STOP_OTHER") {
-                QLOG_DEBUG() << "Trying to shutdown it..";
-                global.sharedMemory->write(QString("IMMEDIATE_SHUTDOWN"));
+                QLOG_INFO() << "Trying to shutdown it..";
+                sharedMemory->write(QString("IMMEDIATE_SHUTDOWN"));
                 memInitNeeded = false;
             }
         }
     }
 
     if (memInitNeeded) {
-        global.sharedMemory->clearMemory();
+        sharedMemory->clearMemory();
     }
 
+    // Cleanup any temporary files from the last time
+    global.fileManager.deleteTopLevelFiles(global.fileManager.getTmpDirPath(), true);
 
     // activate logging in file
     QString logPath = global.fileManager.getMainLogFileName();
@@ -273,8 +300,9 @@ int main(int argc, char *argv[]) {
 
     // from now on logging goes also to log file (up to here only to terminal)
 
+    QString versionStr = global.fileManager.getProgramVersionPrintable();
     QLOG_INFO().noquote() << NN_APP_DISPLAY_NAME " " << versionStr << ", build at " << __DATE__ << " at " << __TIME__
-                          << ", with Qt" << QT_VERSION_STR << " running on " << qVersion();
+                          << ", with Qt " << QT_VERSION_STR << " running on " << qVersion();
     if (logger.loggingLevel() > 1) {
         QLOG_INFO() << "To get more detailed startup logging use --logLevel=1";
     }
@@ -285,7 +313,7 @@ int main(int argc, char *argv[]) {
         signal(SIGHUP, sighup_handler);   // install our handler
 #endif
 
-    QLOG_DEBUG() << "Setting up";
+    QLOG_DEBUG() << "Setting up, guiAvailable=" << guiAvailable;
     w = new NixNote();
     w->setAttribute(Qt::WA_QuitOnClose);
 
@@ -301,6 +329,9 @@ int main(int argc, char *argv[]) {
         w->hide();
     if (global.startMinimized)
         w->showMinimized();
+
+    // show message, if there is any configured
+    w->showAnnouncementMessage();
 
     // Setup the proxy
     QNetworkProxy proxy;
@@ -326,21 +357,22 @@ int main(int argc, char *argv[]) {
         proxy.setType(QNetworkProxy::HttpProxy);
     }
 
-    QLOG_DEBUG() << "Setting up exit signal";
-
+    QLOG_DEBUG() << "main: setting up exit signal (to saveOnExit())";
     QObject::connect(a, SIGNAL(aboutToQuit()), w, SLOT(saveOnExit()));
 
-    QLOG_DEBUG() << "Launching";
+    QLOG_DEBUG() << "main: Launching";
     int rc = a->exec();
-    if (global.sharedMemory->isAttached())
-        global.sharedMemory->detach();
-    QLOG_DEBUG() << "Deleting NixNote instance";
+    if (sharedMemory->isAttached()) {
+        sharedMemory->detach();
+    }
+
+    QLOG_DEBUG() << "main: deleting NixNote instance";
     delete w;
-    QLOG_DEBUG() << "Quitting application instance";
+    QLOG_DEBUG() << "main: quitting application instance";
     a->exit(rc);
-    QLOG_DEBUG() << "Deleting application instance";
+    QLOG_DEBUG() << "main: deleting application instance";
     delete a;
-    QLOG_INFO() << "Exit: retcode=" << rc;
+    QLOG_INFO() << "main: Exit: retcode=" << rc;
     exit(rc);
     return rc;
 }

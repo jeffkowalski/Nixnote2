@@ -17,7 +17,12 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 ***********************************************************************************/
 
-
+#include <QFileSystemModel>
+#include <QFileIconProvider>
+#include <poppler-qt5.h>
+#include <QIcon>
+#include <QList>
+#include <iostream>
 #include "noteformatter.h"
 #include "src/sql/resourcetable.h"
 #include "src/sql/notebooktable.h"
@@ -28,33 +33,14 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "src/filters/filterengine.h"
 #include "src/utilities/mimereference.h"
 #include "enmlformatter.h"
-
-#include <QFileSystemModel>
-#include <QFileIconProvider>
-
-#if QT_VERSION < 0x050000
-
-#include <poppler-qt4.h>
-
-#else
-
-#include <poppler-qt5.h>
-
-#endif
-
-#include <QIcon>
-#include <QList>
-
-
-#include <iostream>
+#include "src/utilities/NixnoteStringUtils.h"
 
 using namespace std;
 
 extern Global global;
 
 /* Constructor. */
-NoteFormatter::NoteFormatter(QObject *parent) :
-    QObject(parent) {
+NoteFormatter::NoteFormatter(QObject *parent) : NoteFormatterBase(parent) {
     thumbnail = false;
     this->setNoteHistory(false);
     this->noteHistory = false;
@@ -120,6 +106,33 @@ void NoteFormatter::setNoteHistory(bool value) {
 }
 
 
+QString NoteFormatter::enmlToNoteHTML(QString enml) {
+    QWebPage page;
+    QEventLoop loop;
+    QLOG_TRACE() << "Before preHTMLFormat";
+    QString html = "<body></body>";
+    if (note.content.isSet()) {
+        html = preHtmlFormat(enml);
+    }
+
+    html.replace("<en-note", "<body");
+    html.replace("</en-note>", "</body>");
+
+    QByteArray htmlPage;
+    htmlPage.append(html);
+    QLOG_TRACE() << "About to set content";
+    page.mainFrame()->setContent(htmlPage);
+    QObject::connect(&page, SIGNAL(loadFinished(bool)), &loop, SLOT(quit()));
+
+    QLOG_TRACE() << "Starting to modify tags";
+    modifyTags(page);
+    QLOG_TRACE() << "Done modifying tags";
+    html = page.mainFrame()->toHtml();
+
+    return html;
+}
+
+
 /* Take the ENML note and transform it into HTML that WebKit will
   not complain about */
 QByteArray NoteFormatter::rebuildNoteHTML() {
@@ -148,29 +161,7 @@ QByteArray NoteFormatter::rebuildNoteHTML() {
     QLOG_DEBUG_FILE(logfilePrefix + "original-enml.xml", origENML);
 
 
-    QWebPage page;
-    QEventLoop loop;
-    QLOG_TRACE() << "Before preHTMLFormat";
-    QString html = "<body></body>";
-    if (note.content.isSet()) {
-        html = preHtmlFormat(origENML);
-    }
-
-    html.replace("<en-note", "<body");
-    html.replace("</en-note>", "</body>");
-
-    QByteArray htmlPage;
-    htmlPage.append(html);
-
-
-    QLOG_TRACE() << "About to set content";
-    page.mainFrame()->setContent(htmlPage);
-    QObject::connect(&page, SIGNAL(loadFinished(bool)), &loop, SLOT(quit()));
-
-    QLOG_TRACE() << "Starting to modify tags";
-    modifyTags(page);
-    QLOG_TRACE() << "Done modifying tags";
-    html = page.mainFrame()->toHtml();
+    QString html = enmlToNoteHTML(origENML);
     note.content = html;
 
     QLOG_DEBUG_FILE(logfilePrefix + "modify.html", html);
@@ -251,8 +242,8 @@ void NoteFormatter::modifyTags(QWebPage &doc) {
     QLOG_TRACE() << "Searching for all en-media tags;";
     QWebElementCollection anchors = doc.mainFrame()->findAllElements("en-media");
     QLOG_TRACE() << "Search complete: " << anchors.toList().size();
-        foreach(QWebElement
-                    enmedia, anchors) {
+            foreach(QWebElement
+                            enmedia, anchors) {
             if (enmedia.hasAttribute("type")) {
                 QString attr = enmedia.attribute("type");
                 QString hash = enmedia.attribute("hash");
@@ -325,11 +316,17 @@ void NoteFormatter::modifyTags(QWebPage &doc) {
     enCryptLen = anchors.count();
     for (qint32 i = 0; i < anchors.count(); i++) {
         QWebElement element = anchors.at(i);
-        if (!element.attribute("href").toLower().startsWith("http://latex.codecogs.com/gif.latex?")) {
-            element.setAttribute("title", element.attribute("href"));
+        QString href = element.attribute("href");
+        QLOG_DEBUG() << "link #" << i << " href=" << href;
+
+        if (!NixnoteStringUtils::isLatexFormulaResourceUrl(href)) {
+            element.setAttribute("title", href);
         } else {
-            QString formula = element.attribute("href").toLower().replace("http://latex.codecogs.com/gif.latex?", "");
-            element.setAttribute("title", formula);
+            QString encodedFormula = NixnoteStringUtils::extractLatexFormulaFromResourceUrl(href, true);
+            element.setAttribute("title", encodedFormula);
+
+            QLOG_DEBUG() << "link #" << i << " encodedFormula=" << encodedFormula;
+
             QString resLid = element.firstChild().attribute("lid", "");
             element.setAttribute("href", "latex:///" + resLid);
         }
@@ -479,50 +476,69 @@ const char *NoteFormatter::findImageFormat(QString file) {
   modify the ENML */
 void NoteFormatter::modifyImageTags(QWebElement &enMedia, QString &hash) {
     QLOG_TRACE_IN();
-    //QLOG_DEBUG() << "Image tag - getting resource hash=" << hash;
     QString mimetype = enMedia.attribute("type");
     qint32 resLid = 0;
     resLid = hashMap[hash];
     QString highlightString = "";
 
     if (resLid > 0) {
-        QLOG_DEBUG() << "htmlfmt: image tag - getting resource hash=" << hash << ", lid=" << resLid;
         Resource r = resourceMap[resLid];
         QLOG_TRACE() << "resource retrieved";
 
         MimeReference ref;
         QString filename;
         ResourceAttributes attributes;
-        if (r.attributes.isSet())
+        if (r.attributes.isSet()) {
             attributes = r.attributes;
-        if (attributes.fileName.isSet())
+        }
+        if (attributes.fileName.isSet()) {
             filename = attributes.fileName;
+        }
+        if (r.mime.isSet() && (mimetype != r.mime)) {
+            QLOG_WARN() << "htmlfmt: image tag - overriding mime type from ENML style attribute=" << mimetype
+              << " by mimetype from resource=" << r.mime;
+
+            // override the mime type from "type" attribute in enml by mime info from resource
+            mimetype = r.mime;
+        }
+
+
+
         QString type = ref.getExtensionFromMime(mimetype, filename);
+        QLOG_DEBUG() << "htmlfmt: image tag - getting resource hash=" << hash << ", lid=" << resLid << ", type="
+                     << type << ", mimetype=" << mimetype;
 
         Data data;
         if (r.data.isSet())
             data = r.data;
 
         if (data.size.isSet() && data.size > 0) {
-            QString imgfile =
-                "file:///" +
-                global.fileManager.getDbDirPath(QString(NN_DB_DIR_PREFIX "a/") + QString::number(resLid) + type);
+            QString imgfile("file:///" + global.fileManager.getDbaDirPath() + QString::number(resLid) + type);
+            QLOG_DEBUG() << "htmlfmt: image tag - imgfile=" << imgfile;
 
             enMedia.setAttribute("src", imgfile);
+
             // Check if this is a LaTeX image
             ResourceAttributes attributes;
-            if (r.attributes.isSet())
+            if (r.attributes.isSet()) {
                 attributes = r.attributes;
+            }
+
             QString sourceUrl = "";
-            if (attributes.sourceURL.isSet())
+            if (attributes.sourceURL.isSet()) {
                 sourceUrl = attributes.sourceURL;
-            if (sourceUrl.toLower().startsWith("http://latex.codecogs.com/gif.latex?")) {
+            }
+
+            if (NixnoteStringUtils::isLatexFormulaResourceUrl(sourceUrl)) {
                 enMedia.appendInside("<img/>");
                 QWebElement newText = enMedia.lastChild();
                 enMedia.setAttribute("en-tag", "en-latex");
                 newText.setAttribute("onMouseOver", "style.cursor='pointer'");
-                sourceUrl.replace("http://latex.codecogs.com/gif.latex?", "");
-                newText.setAttribute("title", sourceUrl);
+
+                QString encodedFormula = NixnoteStringUtils::extractLatexFormulaFromResourceUrl(sourceUrl, true);
+                newText.setAttribute("title", encodedFormula);
+                QLOG_DEBUG() << "setting title=" << encodedFormula;
+
                 newText.setAttribute("href", "latex:///" + QString::number(resLid));
             }
             enMedia.setAttribute("onContextMenu", "window.browserWindow.imageContextMenu('"
@@ -575,20 +591,22 @@ void NoteFormatter::modifyApplicationTags(QWebElement &enmedia, QString &hash, Q
     qint32 resLid = resTable.getLidByHashHex(note.guid, hash);
     Resource r;
     resTable.get(r, resLid, false);
-    if (!r.data.isSet())
+    if (!r.data.isSet()) {
         resourceError = true;
-    else {
+    } else {
         // If we are running the formatter and we are not generating a thumbnail
         QString mimetype = "";
-        if (r.mime.isSet())
+        if (r.mime.isSet()) {
             mimetype = r.mime;
+        }
 
         // Check that we don't have a locked PDF.  If we do, then disable PDF previews.
         if (mimetype == "application/pdf") {
             QString file = global.fileManager.getDbaDirPath() + QString::number(resLid) + ".pdf";
             Poppler::Document *doc = Poppler::Document::load(file);
-            if (doc != nullptr && doc->isLocked())
+            if (doc != nullptr && doc->isLocked()) {
                 pdfPreview = false;
+            }
         }
 
         if (mimetype == "application/pdf" && pdfPreview && !thumbnail) {
@@ -600,7 +618,7 @@ void NoteFormatter::modifyApplicationTags(QWebElement &enmedia, QString &hash, Q
         // If we are running the formatter so we can generate a thumbnail and it is a PDF
         if (mimetype == "application/pdf" && pdfPreview && thumbnail) {
             QString printImageFile =
-                global.fileManager.getTmpDirPath() + QString::number(resLid) + QString("-print.jpg");
+                    global.fileManager.getTmpDirPath() + QString::number(resLid) + QString("-print.jpg");
             QString file = global.fileManager.getDbaDirPath() + QString::number(resLid) + ".pdf";
             Poppler::Document *doc;
             doc = Poppler::Document::load(file);
@@ -618,19 +636,23 @@ void NoteFormatter::modifyApplicationTags(QWebElement &enmedia, QString &hash, Q
             enmedia.setOuterXml(enmedia.toOuterXml().replace("</en-media>", "</img>"));
             return;
         }
+
         QString fileDetails = "";
         MimeReference ref;
         ResourceAttributes attributes;
-        if (r.attributes.isSet())
+        if (r.attributes.isSet()) {
             attributes = r.attributes;
-        if (attributes.fileName.isSet())
+        }
+
+        if (attributes.fileName.isSet()) {
             fileDetails = ref.getExtensionFromMime(r.mime, fileDetails);
+        }
 
         enmedia.setAttribute("href", QString("nnres:") + global.fileManager.getDbaDirPath() + QString::number(resLid)
                                      + fileDetails);
         contextFileName =
-            global.fileManager.getTmpDirPath("") + QString::number(resLid) + global.attachmentNameDelimeter +
-            fileDetails;
+                global.fileManager.getTmpDirPath("") + QString::number(resLid) + global.attachmentNameDelimeter +
+                fileDetails;
 
         // Setup the context menu.  This is useful if we want to do a "save as" or such
         contextFileName = contextFileName.replace("\\", "/");
@@ -647,17 +669,22 @@ void NoteFormatter::modifyApplicationTags(QWebElement &enmedia, QString &hash, Q
             fileExt = attributes.fileName;
         else
             fileExt = appl;
+
         QString fn;
         QString mime;
-        if (attributes.fileName.isSet())
+        if (attributes.fileName.isSet()) {
             fn = attributes.fileName;
-        if (r.mime.isSet())
+        }
+        if (r.mime.isSet()) {
             mime = r.mime;
+        }
         fileExt = ref.getExtensionFromMime(mime, fn);
+
         QString icon = findIcon(resLid, r, fileExt);
         newText.setAttribute("src", "file:///" + icon);
-        if (attributes.fileName.isSet())
+        if (attributes.fileName.isSet()) {
             newText.setAttribute("title", attributes.fileName);
+        }
         newText.setAttribute("en-tag", "temporary");
         //Rename the tag to a <a> link
         enmedia.setOuterXml(enmedia.toOuterXml().replace("<en-media", "<a"));
@@ -668,7 +695,7 @@ void NoteFormatter::modifyApplicationTags(QWebElement &enmedia, QString &hash, Q
 
 
 // Build an icon for any attachments
-QString NoteFormatter::findIcon(qint32 lid, Resource r, QString appl) {
+QString NoteFormatter::findIcon(qint32 lid, Resource r, QString fileExt) {
     QLOG_TRACE_IN();
 
     FilterCriteria *criteria = global.getCurrentCriteria();
@@ -679,7 +706,7 @@ QString NoteFormatter::findIcon(qint32 lid, Resource r, QString appl) {
         resourceHighlight = engine.resourceContains(lid, criteria->getSearchString(), nullptr);
     }
 
-    QString fileName = global.fileManager.getDbaDirPath(QString::number(lid) + appl);
+    QString fileName = global.fileManager.getDbaDirPath() + QString::number(lid) + fileExt;
     QIcon icon;
     QFileInfo info(fileName);
     QFileIconProvider provider;
@@ -693,7 +720,7 @@ QString NoteFormatter::findIcon(qint32 lid, Resource r, QString appl) {
     if (attributes.fileName.isSet())
         displayName = attributes.fileName;
     else
-        displayName = appl.toUpper() + " " + QString(tr("File"));
+        displayName = fileExt.toUpper() + " " + QString(tr("File"));
 
     // Setup the painter
     QPainter p;
@@ -783,7 +810,7 @@ bool NoteFormatter::buildInkNote(QWebElement &docElem, QString &hash) {
     docElem.setAttribute("lid", QString::number(resLid));
     docElem.setAttribute("type", "application/vnd.evernote.ink");
     QString filename =
-        QString("file:///") + global.fileManager.getDbaDirPath() + QString::number(resLid) + QString(".png");
+            QString("file:///") + global.fileManager.getDbaDirPath() + QString::number(resLid) + QString(".png");
     docElem.setAttribute("src", filename);
     QString k = docElem.toOuterXml();
     k.replace("<en-media", "<img");
@@ -798,8 +825,7 @@ bool NoteFormatter::buildInkNote(QWebElement &docElem, QString &hash) {
 void NoteFormatter::modifyPdfTags(qint32 resLid, QWebElement &enmedia) {
     QLOG_TRACE_IN();
 
-    enmedia.setAttribute("width", "100%");
-    enmedia.setAttribute("height", "100%");
+    enmedia.setAttribute("style", "width:100%; height: 600px");
     enmedia.setAttribute("lid", QString::number(resLid));
     QString x = enmedia.toOuterXml();
     x.replace("en-media", "object");

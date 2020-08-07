@@ -37,6 +37,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "src/sql/notebooktable.h"
 #include "src/utilities/nuuid.h"
 #include "src/dialog/noteproperties.h"
+#include "src/nixnote.h"
+#include "src/utilities/NixnoteStringUtils.h"
+
 
 //*****************************************************************
 //* This class overrides QTableView and is used to provide a
@@ -196,30 +199,31 @@ NTableView::NTableView(QWidget *parent) :
     this->model()->setHeaderData(NOTE_TABLE_PINNED_POSITION, Qt::Horizontal, QObject::tr("Pinned"));
 
     contextMenu = new QMenu(this);
-    this->setFont(global.getGuiFont(font()));
-    contextMenu->setFont(global.getGuiFont(font()));
+    const QFont guiFont = global.getGuiFont(font());
+    this->setFont(guiFont);
+    contextMenu->setFont(guiFont);
 
     openNoteExternalWindowAction = new QAction(tr("Open Note"), this);
     contextMenu->addAction(openNoteExternalWindowAction);
     connect(openNoteExternalWindowAction, SIGNAL(triggered()), this, SLOT(openNoteExternalWindowTriggered()));
-    openNoteExternalWindowAction->setFont(global.getGuiFont(font()));
+    openNoteExternalWindowAction->setFont(guiFont);
 
     openNoteNewTabAction = new QAction(tr("Open Note In New Tab"), this);
     contextMenu->addAction(openNoteNewTabAction);
     connect(openNoteNewTabAction, SIGNAL(triggered()), this, SLOT(openNoteNewTabTriggered()));
-    openNoteNewTabAction->setFont(global.getGuiFont(font()));
+    openNoteNewTabAction->setFont(guiFont);
 
     contextMenu->addSeparator();
 
     addNoteAction = new QAction(tr("Add Note"), this);
     contextMenu->addAction(addNoteAction);
     connect(addNoteAction, SIGNAL(triggered()), this, SLOT(createNewNote()));
-    addNoteAction->setFont(global.getGuiFont(font()));
+    addNoteAction->setFont(guiFont);
 
     deleteNoteAction = new QAction(tr("Delete Note"), this);
     contextMenu->addAction(deleteNoteAction);
     connect(deleteNoteAction, SIGNAL(triggered()), this, SLOT(deleteSelectedNotes()));
-    deleteNoteAction->setFont(global.getGuiFont(font()));
+    deleteNoteAction->setFont(guiFont);
     deleteNoteAction->setShortcut(QKeySequence::Delete);
 
     QShortcut *deleteShortcut = new QShortcut(this);
@@ -230,64 +234,71 @@ NTableView::NTableView(QWidget *parent) :
     restoreNoteAction = new QAction(tr("Restore Note"), this);
     contextMenu->addAction(restoreNoteAction);
     connect(restoreNoteAction, SIGNAL(triggered()), this, SLOT(restoreSelectedNotes()));
-    restoreNoteAction->setFont(global.getGuiFont(font()));
+    restoreNoteAction->setFont(guiFont);
     restoreNoteAction->setVisible(false);
 
-    copyNoteLinkAction = new QAction(tr("Copy Note Link"), this);
+    copyInAppNoteLinkAction = new QAction(tr("Copy In-App Note Link"), this);
+    global.setupShortcut(copyInAppNoteLinkAction, "Edit_Copy_Note_Url");
+    contextMenu->addAction(copyInAppNoteLinkAction);
+    copyInAppNoteLinkAction->setFont(guiFont);
+    connect(copyInAppNoteLinkAction, SIGNAL(triggered()), this, SLOT(copyInAppNoteLink()));
+
+    QAction *copyNoteLinkAction = new QAction(tr("Copy Note Link"), this);
+    //global.setupShortcut(copyNoteLinkAction, "Edit_Copy_Note_Url");
     contextMenu->addAction(copyNoteLinkAction);
-    copyNoteLinkAction->setFont(global.getGuiFont(font()));
+    copyNoteLinkAction->setFont(guiFont);
     connect(copyNoteLinkAction, SIGNAL(triggered()), this, SLOT(copyNoteLink()));
 
     copyNoteAction = new QAction(tr("Duplicate Note"), this);
     contextMenu->addAction(copyNoteAction);
-    copyNoteAction->setFont(global.getGuiFont(font()));
+    copyNoteAction->setFont(guiFont);
     connect(copyNoteAction, SIGNAL(triggered()), this, SLOT(copyNote()));
 
     reminderMenu = new QMenu(tr("Reminders"));
-    reminderMenu->setFont(global.getGuiFont(font()));
+    reminderMenu->setFont(guiFont);
     contextMenu->addMenu(reminderMenu);
 
     reminderRemoveAction = new QAction(tr("Remove"), this);
     reminderMenu->addAction(reminderRemoveAction);
-    reminderRemoveAction->setFont(global.getGuiFont(font()));
+    reminderRemoveAction->setFont(guiFont);
     connect(reminderRemoveAction, SIGNAL(triggered()), this, SLOT(removeReminder()));
 
     reminderMarkCompletedAction = new QAction(tr("Mark Completed"), this);
     reminderMenu->addAction(reminderMarkCompletedAction);
-    reminderMarkCompletedAction->setFont(global.getGuiFont(font()));
+    reminderMarkCompletedAction->setFont(guiFont);
     connect(reminderMarkCompletedAction, SIGNAL(triggered()), this, SLOT(markReminderCompleted()));
 
 
     pinNoteAction = new QAction(tr("Pin Note"), this);
     contextMenu->addAction(pinNoteAction);
-    pinNoteAction->setFont(global.getGuiFont(font()));
+    pinNoteAction->setFont(guiFont);
     connect(pinNoteAction, SIGNAL(triggered()), this, SLOT(pinNote()));
 
     unpinNoteAction = new QAction(tr("Unpin Note"), this);
     contextMenu->addAction(unpinNoteAction);
-    unpinNoteAction->setFont(global.getGuiFont(font()));
+    unpinNoteAction->setFont(guiFont);
     connect(unpinNoteAction, SIGNAL(triggered()), this, SLOT(unpinNote()));
 
     mergeNotesAction = new QAction(tr("Merge Notes"), this);
     contextMenu->addAction(mergeNotesAction);
-    mergeNotesAction->setFont(global.getGuiFont(font()));
+    mergeNotesAction->setFont(guiFont);
     connect(mergeNotesAction, SIGNAL(triggered()), this, SLOT(mergeNotes()));
 
 
     createTableOfContentsAction = new QAction(tr("Create Table of Contents"), this);
     contextMenu->addAction(createTableOfContentsAction);
-    createTableOfContentsAction->setFont(global.getGuiFont(font()));
+    createTableOfContentsAction->setFont(guiFont);
     connect(createTableOfContentsAction, SIGNAL(triggered()), this, SLOT(createTableOfContents()));
 
     contextMenu->addSeparator();
     colorMenu = new QMenu(tr("Title Color"));
-    colorMenu->setFont(global.getGuiFont(font()));
+    colorMenu->setFont(guiFont);
     contextMenu->addMenu(colorMenu);
 
     contextMenu->addSeparator();
     propertiesAction = new QAction(tr("Properties"), this);
     contextMenu->addAction(propertiesAction);
-    propertiesAction->setFont(global.getGuiFont(font()));
+    propertiesAction->setFont(guiFont);
     connect(propertiesAction, SIGNAL(triggered()), this, SLOT(showPropertiesDialog()));
 
     noteTitleColorWhiteAction = new QAction(tr("White"), colorMenu);
@@ -341,7 +352,6 @@ NTableView::NTableView(QWidget *parent) :
 
 
     QLOG_TRACE() << "Exiting NTableView constructor";
-
 }
 
 
@@ -682,20 +692,13 @@ void NTableView::deleteSelectedNotes() {
     else
         msg = typeDelete + QString::number(lids.size()) + " notes?";
 
-    QMessageBox msgBox;
-    msgBox.setWindowTitle(tr("Verify Delete"));
-    msgBox.setText(msg);
-    msgBox.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
-    msgBox.setIcon(QMessageBox::Question);
-    msgBox.setDefaultButton(QMessageBox::Yes);
-    int rc = msgBox.exec();
-    if (rc != QMessageBox::Yes)
+    NixNote *nixnote = (NixNote*) (parent());
+    if (!nixnote->isOkToDeleteNote(msg)) {
         return;
+    }
 
     NoteTable ntable(global.db);
     NSqlQuery sql(global.db);
-//    NSqlQuery transaction(*global.db);
-    //transaction.exec("begin");
     sql.prepare("Delete from filter where lid=:lid");
     for (int i = 0; i < lids.size(); i++) {
         ntable.deleteNote(lids[i], true);
@@ -872,11 +875,19 @@ void NTableView::copyNote() {
 
 // Copy a note link into the clipboard
 void NTableView::copyNoteLink() {
+    this->copyNoteLinkInternal(false);
+}
+
+void NTableView::copyInAppNoteLink() {
+    this->copyNoteLinkInternal(true);
+}
+
+void NTableView::copyNoteLinkInternal(bool createInAppLink) {
     QList<qint32> lids;
     getSelectedLids(lids);
-    if (lids.size() == 0)
+    if (lids.size() == 0) {
         return;
-
+    }
 
     UserTable userTable(global.db);
     User user;
@@ -901,33 +912,37 @@ void NTableView::copyNoteLink() {
 
     Note note;
     NoteTable ntable(global.db);
-    QString lidUrl = "";
-    for (int i = 0; i < lids.size(); i++) {
-        ntable.get(note, lids[i], false, false);
 
-        QString guid = "";
-        if (note.guid.isSet())
-            guid = note.guid;
-        QString localid;
-        if (!note.updateSequenceNum.isSet() || note.updateSequenceNum == 0) {
-            syncneeded = true;
-            localid = QString::number(lids[i]);
-        } else
-            localid = guid;
 
-        lidUrl = lidUrl + "evernote:///view/" + userid + "/" + shard + "/" + guid + "/" + localid + "/" + " ";
+    qint32 lid = lids[0];
+    ntable.get(note, lid, false, false);
+
+    QString guid = "";
+    if (note.guid.isSet()) {
+        guid = note.guid;
     }
+    QString localid;
+    if (!note.updateSequenceNum.isSet() || note.updateSequenceNum == 0) {
+        syncneeded = true;
+        // note: this is original code, but it will not work anyway
+        localid = QString::number(lid);
+    } else {
+        localid = guid;
+    }
+
     if (syncneeded) {
         QMessageBox msgBox;
         msgBox.setWindowTitle(tr("Unsynchronized Note"));
         msgBox.setText(
-            tr("This note has never been synchronized.\nUsing this in a note link can cause problems unless you synchronize it first."));
+                tr("This note has never been synchronized.\nUsing this in a note link can cause problems unless you synchronize it first."));
         msgBox.setStandardButtons(QMessageBox::Ok);
         msgBox.setIcon(QMessageBox::Warning);
         msgBox.setDefaultButton(QMessageBox::Ok);
         msgBox.exec();
     }
-    QApplication::clipboard()->setText(lidUrl);
+
+    QString href = NixnoteStringUtils::createNoteLink(createInAppLink, global.server, userid, shard, guid);
+    QApplication::clipboard()->setText(href);
 }
 
 

@@ -143,19 +143,6 @@ void Global::setup(StartupConfig startupConfig, bool guiAvailable) {
 
     server = accountsManager->getServer();
 
-    // Cleanup any temporary files from the last time
-
-    QDir myDir(fileManager.getTmpDirPath());
-    // QStringList list = myDir.entryList();
-    // for (int i = 0; i < list.size(); i++) {
-    //     if (list[i] != "." && list[i] != "..") {
-    //         QString file = fileManager.getTmpDirPath() + list[i];
-    //         myDir.remove(file);
-    //     }
-    // }
-    fileManager.deleteTopLevelFiles(fileManager.getTmpDirPath(), true);
-
-
     settings->beginGroup(INI_GROUP_DEBUGGING);
     disableUploads = settings->value("disableUploads", false).toBool();
     nonAsciiSortBug = settings->value("nonAsciiSortBug", false).toBool();
@@ -740,10 +727,12 @@ QString Global::getThemeCss(QString key) {
 
 // Get the default GUI font
 QFont Global::getGuiFont(QFont f) {
-    if (defaultGuiFont != "")
+    if (defaultGuiFont != "") {
         f.setFamily(defaultGuiFont);
-    if (defaultGuiFontSize > 0)
+    }
+    if (defaultGuiFontSize > 0) {
         f.setPointSize(defaultGuiFontSize);
+    }
     return f;
 }
 
@@ -1458,7 +1447,7 @@ void Global::setMessage(QString msg, int timeout) {
  */
 FilterCriteria *Global::getCurrentCriteria() const {
     qint32 pos = global.filterPosition;
-    //QLOG_DEBUG() << "Requesting filter [" << pos << "], count=" << global.filterCriteria.size();
+    QLOG_TRACE() << "Requesting filter [" << pos << "], filter count=" << global.filterCriteria.size();
     return global.filterCriteria[pos];
 }
 

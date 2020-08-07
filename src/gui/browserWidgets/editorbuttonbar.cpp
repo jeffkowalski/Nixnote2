@@ -56,7 +56,7 @@ EditorButtonBar::EditorButtonBar(QWidget *parent) :
     rightJustifyVisible = contextMenu->addAction(tr("Align Right"));
     hlineVisible = contextMenu->addAction(tr("Horizontal Line"));
     insertDatetimeVisible = contextMenu->addAction(tr("Insert Date Time"));
-    shiftRightVisible = contextMenu->addAction(tr("Intent/Shift Right"));
+    shiftRightVisible = contextMenu->addAction(tr("Indent/Shift Right"));
     shiftLeftVisible = contextMenu->addAction(tr("Outdent/Shift Left"));
     bulletListVisible = contextMenu->addAction(tr("Bullet List"));
     numberListVisible = contextMenu->addAction(tr("Number List"));
@@ -70,6 +70,7 @@ EditorButtonBar::EditorButtonBar(QWidget *parent) :
     htmlEntitiesButtonVisible = contextMenu->addAction(tr("HTML Entities"));
     formatCodeButtonVisible = contextMenu->addAction(tr("Format Code Block"));
     syncButtonVisible = contextMenu->addAction(tr("Sync"));
+    emailButtonVisible = contextMenu->addAction(tr("Email Note"));
 
     undoVisible->setCheckable(true);
     redoVisible->setCheckable(true);
@@ -105,6 +106,7 @@ EditorButtonBar::EditorButtonBar(QWidget *parent) :
     insertDatetimeVisible->setCheckable(true);
     formatCodeButtonVisible->setCheckable(true);
     syncButtonVisible->setCheckable(true);
+    emailButtonVisible->setCheckable(true);
 
     connect(undoVisible, SIGNAL(triggered()), this, SLOT(toggleUndoButtonVisible()));
     connect(redoVisible, SIGNAL(triggered()), this, SLOT(toggleRedoButtonVisible()));
@@ -138,10 +140,14 @@ EditorButtonBar::EditorButtonBar(QWidget *parent) :
     connect(htmlEntitiesButtonVisible, SIGNAL(triggered()), this, SLOT(toggleHtmlEntitiesButtonVisible()));
     connect(formatCodeButtonVisible, SIGNAL(triggered()), this, SLOT(toggleFormatCodeButtonVisible()));
     connect(syncButtonVisible, SIGNAL(triggered()), this, SLOT(toggleSyncButtonVisible()));
+    connect(emailButtonVisible, SIGNAL(triggered()), this, SLOT(toggleEmailButtonVisible()));
 
     // note editor toolbar items begin
     fontNames = new FontNameComboBox(this);
     fontSizes = new FontSizeComboBox(this);
+    QString toolbarHint(tr("To show/hide toolbar items, click on the blank space in toolbar"));
+    fontNames->setToolTip(toolbarHint);
+    fontSizes->setToolTip(toolbarHint);
 
     loadFontNames();
     fontButtonAction = addWidget(fontNames);
@@ -160,7 +166,7 @@ EditorButtonBar::EditorButtonBar(QWidget *parent) :
     );
     fontColorAction = this->addWidget(fontColorButtonWidget);
     // TODO load from settings
-    fontColorMenuWidget->setCurrentColor(fontColor);
+    fontColorMenuWidget->setCurrentColorByEnglishName(fontColor);
 
     highlightColorMenuWidget = new ColorMenu();
     highlightColorButtonWidget = new QToolButton(this);
@@ -175,7 +181,7 @@ EditorButtonBar::EditorButtonBar(QWidget *parent) :
     );
     highlightColorAction = this->addWidget(highlightColorButtonWidget);
     // TODO load from settings
-    highlightColorMenuWidget->setCurrentColor(fontHighlightColor);
+    highlightColorMenuWidget->setCurrentColorByEnglishName(fontHighlightColor);
 
     QString tooltipInfo;
     undoButtonShortcut = new QShortcut(this);
@@ -331,6 +337,11 @@ EditorButtonBar::EditorButtonBar(QWidget *parent) :
     // this sync button doesn't need a shortcut; the main app window shortcut is global
     syncButtonAction = this->addAction(global.getIconResource(":synchronizeIcon"), tr("Sync"));
 
+    // email button & shortcut
+    emailButtonShortcut = new QShortcut(this);
+    tooltipInfo = global.setupShortcut(emailButtonShortcut, "File_Email");
+    emailButtonAction = this->addAction(global.getIconResource(":emailIcon"), tr("Email Note").append(tooltipInfo));
+
     QString css = global.getThemeCss("editorButtonBarCss");
     if (css != "")
         this->setStyleSheet(css);
@@ -361,6 +372,7 @@ EditorButtonBar::~EditorButtonBar() {
     delete fontSizeVisible;
     delete todoVisible;
     delete syncButtonVisible;
+    delete emailButtonVisible;
 }
 
 
@@ -470,6 +482,9 @@ void EditorButtonBar::saveButtonbarState() {
     value = syncButtonAction->isVisible();
     global.settings->setValue("syncButtonVisible", value);
 
+    value = emailButtonAction->isVisible();
+    global.settings->setValue("emailButtonVisible", value);
+
     QString valueS = fontColorMenuWidget->getCurrentColorName();
     global.settings->setValue("fontColor", valueS);
     valueS = highlightColorMenuWidget->getCurrentColorName();
@@ -563,7 +578,8 @@ void EditorButtonBar::getButtonbarState() {
     highlightColorAction->setVisible(global.settings->value("highlightButtonVisible", true).toBool());
     highlightVisible->setChecked(highlightColorAction->isVisible());
 
-    spellCheckButtonAction->setVisible(global.settings->value("spelLCheckButtonVisible", false).toBool());
+    bool spellCheckVisible = global.settings->value("spellCheckButtonVisible", true).toBool();
+    spellCheckButtonAction->setVisible(spellCheckVisible);
     spellCheckButtonVisible->setChecked(spellCheckButtonAction->isVisible());
 
     htmlEntitiesButtonAction->setVisible(global.settings->value("htmlEntitiesButtonVisible", false).toBool());
@@ -577,6 +593,9 @@ void EditorButtonBar::getButtonbarState() {
 
     syncButtonAction->setVisible(global.settings->value("syncButtonVisible", true).toBool());
     syncButtonVisible->setChecked(syncButtonAction->isVisible());
+
+    emailButtonAction->setVisible(global.settings->value("emailButtonVisible", true).toBool());
+    emailButtonVisible->setChecked(syncButtonAction->isVisible());
 
     global.settings->endGroup();
 }
@@ -751,6 +770,11 @@ void EditorButtonBar::toggleSyncButtonVisible() {
     saveButtonbarState();
 }
 
+void EditorButtonBar::toggleEmailButtonVisible() {
+    emailButtonAction->setVisible(emailButtonVisible->isChecked());
+    saveButtonbarState();
+}
+
 // Load the list of font names
 void EditorButtonBar::loadFontNames() {
     if (global.forceWebFonts) {
@@ -857,4 +881,5 @@ void EditorButtonBar::reloadIcons() {
     htmlEntitiesButtonAction->setIcon(global.getIconResource(":htmlentitiesIcon"));
     formatCodeButtonAction->setIcon(global.getIconResource(":formatCodeIcon"));
     syncButtonAction->setIcon(global.getIconResource(":synchronizeIcon"));
+    emailButtonAction->setIcon(global.getIconResource(":emailIcon"));
 }

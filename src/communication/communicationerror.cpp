@@ -20,7 +20,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #include "communicationerror.h"
 #include "src/logger/qslog.h"
-#include "src/qevercloud/generated/EDAMErrorCode.h"
+#include "src/qevercloud/QEverCloud/headers/generated/EDAMErrorCode.h"
 
 // Default constructor
 CommunicationError::CommunicationError(QObject *parent) :
@@ -58,6 +58,7 @@ void CommunicationError::resetTo(
 
     // render exception name
     QString msg(communicationErrorTypeToString(type));
+
     // followed by code
     if (code != 0) {
         msg.append("[");
@@ -65,6 +66,7 @@ void CommunicationError::resetTo(
         if (type == CommunicationError::EDAMUserException) {
             msg.append(edamErrorCodeToString(code));
         } else {
+            msg.append("code=");
             msg.append(QString::number(code));
         }
         msg.append("]");

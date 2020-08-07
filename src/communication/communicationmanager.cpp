@@ -24,9 +24,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 // Windows Check
 #ifndef _WIN32
-
 #include <execinfo.h>
-
 #endif  // end windows check
 
 #include <QNetworkAccessManager>
@@ -37,7 +35,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "src/sql/usertable.h"
 #include "src/sql/notetable.h"
 #include <QPainter>
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -45,7 +42,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 // Windows Check
 #ifndef _WIN32
-
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
@@ -53,10 +49,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #include <curl/curl.h>
 #include <curl/easy.h>
-
 #endif // End windows check
 
 #include "src/utilities/debugtool.h"
+
 
 extern Global global;
 
@@ -65,8 +61,6 @@ extern Global global;
 CommunicationManager::CommunicationManager(DatabaseConnection *db) {
     this->db = db;
     evernoteHost = global.server;
-    //userStorePath = "/edam/user";
-    //clientName = NN_APP_CLIENT_NAME;
     inkNoteList = new QList<QPair<QString, QImage *> *>();
     thumbnailList = new QList<QPair<QString, QImage *> *>();
     postData = new QUrl();
@@ -78,7 +72,6 @@ CommunicationManager::CommunicationManager(DatabaseConnection *db) {
     minutesToNextSync = 0;
     if (networkAccessManager == nullptr) {
         networkAccessManager = new QNetworkAccessManager(this);
-        //        connect(networkAccessManager, SIGNAL(finished(QNetworkReply*)), this, SLOT(inkNoteFinished(QNetworkReply*)));
     }
 }
 
@@ -106,8 +99,12 @@ bool CommunicationManager::enConnect() {
     QString data = global.accountsManager->getOAuthToken();
     tokenizer.tokenize(data);
     authToken = tokenizer.oauth_token;
-//    authToken = global.accountsManager->getOAuthToken();
-    return init();
+    shardId = tokenizer.edam_shard;
+
+    bool b = init();
+
+    QLOG_DEBUG() << "enConnect: " << b;
+    return b;
 }
 
 
@@ -115,8 +112,10 @@ bool CommunicationManager::enConnect() {
 bool CommunicationManager::init() {
     if (initComplete)
         return true;
-    if (!initNoteStore())
+    if (!initNoteStore()) {
+        QLOG_DEBUG() << "init: fail";
         return false;
+    }
     initComplete = true;
     return true;
 }
@@ -125,12 +124,16 @@ bool CommunicationManager::init() {
 // Initialize the note store
 bool CommunicationManager::initNoteStore() {
     using namespace qevercloud;
-    QLOG_DEBUG() << "Inside CommunicationManager::initNoteStore()";
+    QLOG_DEBUG() << "initNoteStore()";
 
-    User user;
-    if (!getUserInfo(user))
-        return false;
-    noteStorePath = "/edam/note/" + user.shardId;
+    // EXPERIMENTAL !! disable UserStore.getUser() call
+    // User user;
+    // if (!getUserInfo(user)) { //@@
+    //     QLOG_DEBUG() << "initNoteStore: fail";
+    //     return false;
+    // }
+
+    noteStorePath = "/edam/note/" + shardId;
 
     QString noteStoreUrl = QString("https://") + evernoteHost + noteStorePath;
     myNoteStore = new NoteStore(noteStoreUrl, authToken, this);
@@ -142,40 +145,54 @@ bool CommunicationManager::initNoteStore() {
 // Disconnect from Evernote's servers (for private notebooks)
 void CommunicationManager::enDisconnect() {
     //noteStore->disconnect();
-    userStore->disconnect();
-    if (linkedNoteStore != nullptr)
-        linkedNoteStore->disconnect();
-    if (myNoteStore != nullptr)
-        myNoteStore->disconnect();
+    //userStore->disconnect();
+    // if (linkedNoteStore != nullptr)
+    //     linkedNoteStore->disconnect();
+    // if (myNoteStore != nullptr)
+    //     myNoteStore->disconnect();
 }
 
 
 // Get a user's information
 bool CommunicationManager::getUserInfo(User &user) {
-    QLOG_DEBUG() << "Inside CommunicationManager::getUserInfo";
+
+    QNetworkAccessManager *p = evernoteNetworkAccessManager();
+    QNetworkAccessManager::NetworkAccessibility accessibility = p->networkAccessible();
+    // unfortunately it doesn't really seem to check the network availability
+    qint64 time1 = QDateTime::currentMSecsSinceEpoch();
+    QLOG_DEBUG() << "CommunicationManager.getUserInfo(): networkAccessible=" << accessibility << ", timestamp=" << time1;
+
+    QLOG_DEBUG() << "CommunicationManager.getUserInfo(): new UserStore(); host=" << evernoteHost;
+    QLOG_TRACE() << "token=" << authToken;
     userStore = new UserStore(evernoteHost, authToken);
+
+    bool res = true;
     try {
+        QLOG_DEBUG() << "CommunicationManager.getUserInfo(): userStore.getUser()";
         User u = userStore->getUser();
         user = u;
     } catch (ThriftException &e) {
         reportError(CommunicationError::ThriftException, e.type(), e.what());
-        return false;
+        res = false;
     } catch (EDAMUserException &e) {
         reportError(CommunicationError::EDAMUserException, e.errorCode, e.what());
-        return false;
+        res = false;
     } catch (EDAMSystemException &e) {
         handleEDAMSystemException(e);
-        return false;
+        res = false;
     } catch (EDAMNotFoundException &e) {
         handleEDAMNotFoundException(e);
-        return false;
+        res = false;
     } catch (const std::exception &e) {
         reportError(CommunicationError::StdException, 16, e.what());
-        return false;
+        res = false;
     }
+    qint32 userId = user.id.isSet() ? user.id.ref() : -1;
 
-    QLOG_TRACE_OUT();
-    return true;
+    qint64 time2 = QDateTime::currentMSecsSinceEpoch();
+    QLOG_DEBUG() << "Exiting CommunicationManager::getUserInfo, res=" << res << ", user=" << userId
+                 << ", timestamp=" << QDateTime::currentMSecsSinceEpoch() << ", " << (time2 - time1) << " ms";
+    return res;
 }
 
 
@@ -210,6 +227,9 @@ bool CommunicationManager::getSyncState(QString token, SyncState &syncState) {
         return false;
     } catch (EDAMSystemException &e) {
         handleEDAMSystemException(e);
+        return false;
+    } catch (const std::exception &e) {
+        reportError(CommunicationError::StdException, 16, e.what());
         return false;
     }
     return true;
@@ -451,41 +471,61 @@ qint32 CommunicationManager::expungeNotebook(Guid guid) {
 
 // Upload a note to Evernote
 qint32 CommunicationManager::uploadNote(Note &note, QString token) {
+
+    if (QLOG_IS_DEBUG) {
+        // dump always; but only in DEBUG log level
+        dumpNote(note);
+
+        qint32 resourceCount = note.resources.isSet() ? note.resources.ref().size() : 0;
+
+        QLOG_DEBUG() << "uploadNote " << note.guid << ", " << note.title << ", resourceCount=" << resourceCount;
+        if (resourceCount > 0) {
+            DebugTool d;
+            d.dumpNoteResources(note);
+        }
+    }
+
     if (token == "") {
         token = authToken;
     }
     noteStore = (token == authToken) ? myNoteStore : linkedNoteStore;
+
+    qint32 updateSequenceNum = 0;
     try {
         if (note.updateSequenceNum.isSet() && note.updateSequenceNum > 0) {
+            QLOG_DEBUG() << "qevercloud noteStore->updateNote";
             note = noteStore->updateNote(note, token);
         } else {
+            QLOG_DEBUG() << "qevercloud noteStore->createNote";
             note = noteStore->createNote(note, token);
         }
-        return note.updateSequenceNum;
+        updateSequenceNum = note.updateSequenceNum;
     } catch (ThriftException &e) {
         reportError(CommunicationError::ThriftException, e.type(), e.what());
-        dumpNote(note);
-        return 0;
+        //dumpNote(note);
     } catch (EDAMUserException &e) {
         reportError(CommunicationError::EDAMUserException, e.errorCode, e.what());
-        dumpNote(note);
-        return 0;
+        //dumpNote(note);
     } catch (EDAMSystemException &e) {
         handleEDAMSystemException(e, note.title);
-        dumpNote(note);
-        return 0;
+        //dumpNote(note);
     } catch (EDAMNotFoundException &e) {
         handleEDAMNotFoundException(e, note.title);
-        dumpNote(note);
-        return 0;
+        //dumpNote(note);
     }
+
+    QLOG_DEBUG() << "uploadNote finished " << note.guid << ", updateSequenceNum=" << updateSequenceNum;
+    return updateSequenceNum;
 }
 
 void CommunicationManager::reportError(
-    const CommunicationError::CommunicationErrorType errorType,
-    int code,
-    const QString &message,
-    const QString &internalMessage) {
+        const CommunicationError::CommunicationErrorType errorType,
+        int code,
+        const QString &message,
+        const QString &internalMessage) {
+    QLOG_DEBUG() << "reportError()"
+                 << " timestamp=" << QDateTime::currentMSecsSinceEpoch();
+
 #ifndef _WIN32
     // non Windows only
     void *array[30];
@@ -497,6 +537,7 @@ void CommunicationManager::reportError(
     QLOG_ERROR() << "Exception stacktrace:";
     backtrace_symbols_fd(array, size, 2);
 #endif // End windows check
+
     error.resetTo(errorType, code, message, internalMessage);
 
     global.setMessage(tr("Error in sync: ") + error.getMessage(), 0);
@@ -601,11 +642,11 @@ bool CommunicationManager::authenticateToLinkedNotebookShard(LinkedNotebook &boo
         // Now, authenticate to the book.  Books
         // without a sharekey are public, so authentication
         // isn't needed
-        if (!book.shareKey.isSet())
+        if (!book.sharedNotebookGlobalId.isSet())
             return true;
 
         // We have a share key, so authenticate
-        linkedAuth = noteStore->authenticateToSharedNotebook(book.shareKey, authToken);
+        linkedAuth = noteStore->authenticateToSharedNotebook(book.sharedNotebookGlobalId, authToken);
         linkedAuthToken = linkedAuth.authenticationToken;
     } catch (ThriftException &e) {
         reportError(CommunicationError::ThriftException, e.type(), e.what());
@@ -1013,6 +1054,8 @@ void CommunicationManager::processSyncChunk(SyncChunk &chunk, QString token) {
 
 // Error handler EDAM System Exception
 void CommunicationManager::handleEDAMSystemException(EDAMSystemException e, QString additionalInfo) {
+    QLOG_DEBUG() << "handleEDAMSystemException";
+
     QString msg;
     msg.append(e.what());
     if (e.message.isSet()) {
@@ -1039,9 +1082,9 @@ void CommunicationManager::handleEDAMSystemException(EDAMSystemException e, QStr
             startText = "Application will continue to sync in";
 
         QString userMessage(
-            tr("API rate limit exceeded.") + QString(" ")
-            + tr(startText.c_str()) + QString(" ") + QString::number(this->minutesToNextSync)
-            + " " + tr(endOfText.c_str()));
+                tr("API rate limit exceeded.") + QString(" ")
+                + tr(startText.c_str()) + QString(" ") + QString::number(this->minutesToNextSync)
+                + " " + tr(endOfText.c_str()));
         if (e.rateLimitDuration.isSet()) {
             msg.append(" # rateLimitDuration=").append(e.rateLimitDuration.ref());
         }

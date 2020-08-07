@@ -29,7 +29,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #ifndef DEBUGTOOL_H
 #define DEBUGTOOL_H
 
-#include "src/qevercloud/include/QEverCloud.h"
+#include "src/qevercloud/QEverCloud/headers/QEverCloud.h"
 
 using namespace qevercloud;
 
@@ -46,16 +46,17 @@ private:
     void dumpField(Optional<QStringList> field, QString name);
     void dumpField(Optional< QList< QString> > field, QString name);
     void dumpField(Optional<double> field, QString name);
+    void dumpResource(Resource resource);           // Dump a resource to the log
 
 public:
     DebugTool();
 
-    void dumpTag(Tag tag);                         // Dump a tag to the log
-    void dumpNote(const Note &note);                      // Dump a note to the log
-    void dumpResource(Resource resource);          // Dump a resource to the log
-    void dumpData(Data data);                      // Dump a data segment (from a resource) to the log
+    void dumpTag(Tag tag);                          // Dump a tag to the log
+    void dumpNote(const Note &note);                // Dump a note to the log
+    void dumpNoteResources(const Note &note);       // Dump note resources to the log
+    void dumpData(Data data);                       // Dump a data segment (from a resource) to the log
     void dumpSavedSearch(SavedSearch &search);      // Dump a saved search to the log
-    void dumpNotebook(Notebook notebook);          // Dump a notebeook to the log
+    void dumpNotebook(Notebook notebook);           // Dump a notebeook to the log
 };
 
 #endif // DEBUGTOOL_H
