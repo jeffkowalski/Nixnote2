@@ -107,7 +107,7 @@ More info in: [DOCKER README](docs/DOCKER-README.md)
     * ```sudo apt-get install -y libopencv-dev libhunspell-dev```
   * Tidy library
     * Alternative 1: Install from PPA:
-      * `sudo apt install tidy-dev`
+      * `sudo apt install libtidy-dev`
     * Alternative 2: Build tidy library from source:
       * clone [source code](https://github.com/htacg/tidy-html5) switch to master branch
       * generate makefile
