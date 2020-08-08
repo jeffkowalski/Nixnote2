@@ -93,36 +93,16 @@ More info in: [DOCKER README](docs/DOCKER-README.md)
   of [debian/control](https://github.com/robert7/nixnote2/blob/master/debian/control)
   to see example, what is needed for Ubuntu. If you use another distribution/version,
   you may need adjust packages.
-  * Install basic dependencies (recipe for Ubuntu, use similar for other distros)
-    * ```sudo apt-get install -y git-core qt5-default build-essential```
-    * ```sudo apt-get install -y libboost-dev libboost-test-dev libboost-program-options-dev libevent-dev```
-  * Install qt5 and poppler
-    * ```sudo apt-get install -y libpoppler-qt5-dev```
-    * ```sudo apt-get install -y libqt5webkit5-dev```
-    * ```sudo apt-get install -y qttools5-dev-tools```
-    * ```sudo apt install -y qt5-qmake```
-  * Qt: you can either get Qt packages for your distribution or as alternative you can download qt5 directly
-    from [qt.io/download](https://www.qt.io/download).
-  * ~Optional
-    * ```sudo apt-get install -y libopencv-dev libhunspell-dev```
-  * Tidy library
-    * Alternative 1: Install from PPA:
-      * `sudo apt install libtidy-dev`
-    * Alternative 2: Build tidy library from source:
-      * clone [source code](https://github.com/htacg/tidy-html5) switch to master branch
-      * generate makefile
-      ```bash
-      cmake -DCMAKE_BUILD_TYPE=Debug -DENABLE_DEBUG_SYMBOLS:BOOL=TRUE -DBUILD_SHARED_LIB:BOOL=TRUE -DCMAKE_INSTALL_PREFIX=~/usr
-      ```
-      * build
-      ```bash
-      make
-      ```
-      * install
-      ```bash
-      make install
-      ```
-      * library is now copied to ~/usr
+  ```bash
+  sudo apt-get install -y git-core qt5-default build-essential
+  sudo apt install libtidy-dev
+  sudo apt install libpoppler-qt5-dev
+  sudo apt install libcurl4-openssl-dev
+  sudo apt install libhunspell-dev
+  sudo apt install libqt5webkit5-dev
+  sudo apt install qt5-qmake
+  sudo apt install qttools5-dev-tools
+  ```
 
 * Get latest source from github...
   * I recommend using `master` branch. There maybe feature/* or release/* available, but this may
@@ -136,6 +116,11 @@ More info in: [DOCKER README](docs/DOCKER-README.md)
 `qmake CONFIG+=debug PREFIX=appdir/usr`, then `make && make install`.
 
 This supposes you installed libtidy in system default location (recommended version is 5.6.0).
+
+If libtidy is installed at /usr/lib/x86_64-linux-gnu, you might use
+```bash
+./development/build-with-qmake.sh debug noclean /usr/lib/x86_64-linux-gnu
+```
 
 In case you installed tidy from nixnote (e.g. using package `nixnote2-tidy` from Nixnote PPA), then
 the could command could be `./development/build-with-qmake.sh debug noclean /usr/lib/nixnote2/tidy`.
